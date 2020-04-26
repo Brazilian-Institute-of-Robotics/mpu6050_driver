@@ -19,7 +19,7 @@
 //                 - fixed incorrect Doxygen comments on some methods
 //                 - added timeout value for read operations (thanks mem @ Arduino forums)
 //      2011-07-30 - changed read/write function structures to return success or byte counts
-//                 - made all methods static for multi-device memory savings
+//                 - made all methods for multi-device memory savings
 //      2011-07-28 - initial release
 
 /* ============================================
@@ -50,215 +50,231 @@ THE SOFTWARE.
 #define MPU6050_DRIVER_I2C_DEV_HPP_
 
 #include <cstdint>
-
-// 1000ms default read timeout (modify with "I2Cdev::read_timeout = [ms];")
-#define I2CDEV_DEFAULT_READ_TIMEOUT     1000
+#include <string>
+#include <limits>
 
 class I2Cdev {
  public:
   /**
     * @brief Construct a new I2Cdev object
     * 
+    * @param dev_addr Address of the I2C device to communicate
     */
-  I2Cdev();
+  explicit I2Cdev(uint8_t dev_addr);
 
-  /** 
-   * @brief Read a single bit from an 8-bit device register.
+  /**
+   * @brief Destroy the I2Cdev object
    * 
-   * @param dev_addr I2C slave device address
-   * @param reg_addr Register regAddr to read from
-   * @param bit_num Bit position to read (0-7)
-   * @param data Container for single bit value
-   * @param timeout Optional read timeout in milliseconds (0 to disable, leave 
-   * off to use default class value in I2Cdev::readTimeout)
-   * @return Status of read operation (true = success)
    */
-  static int8_t readBit(uint8_t dev_addr, uint8_t reg_addr, uint8_t bit_num,
-                        uint8_t *data, uint16_t timeout = I2Cdev::read_timeout);
+  ~I2Cdev();
 
-  /** 
-   * @brief Read a single bit from a 16-bit device register.
+  /**
+   * @brief Open I2C bus
    * 
-   * @param dev_addr I2C slave device address
-   * @param reg_addr Register reg_addr to read from
-   * @param bit_num Bit position to read (0-15)
-   * @param data Container for single bit value
-   * @param timeout Optional read timeout in milliseconds (0 to disable, leave
-   * off to use default class value in I2Cdev::readTimeout)
-   * @return Status of read operation (true = success)
+   * @param bus_uri The name of the I2C bus uri
+   * @throw std::runtime_error Thrown if an error occurs when obtaining a file
+   * descriptor for I2C read/write operations
    */
-  static int8_t readBitW(uint8_t dev_addr, uint8_t reg_addr, uint8_t bit_num,
-                         uint16_t *data, uint16_t timeout = I2Cdev::read_timeout);
-
-  /** 
-   * @brief Read multiple bits from an 8-bit device register.
-   * 
-   * @param dev_addr I2C slave device address
-   * @param reg_addr Register reg_addr to read from
-   * @param bit_start First bit position to read (0-7)
-   * @param length Number of bits to read (not more than 8)
-   * @param data Container for right-aligned value (i.e. '101' read from any bit_start position will equal 0x05)
-   * @param timeout Optional read timeout in milliseconds (0 to disable, leave 
-   * off to use default class value in I2Cdev::readTimeout)
-   * @return Status of read operation (true = success)
-   */
-  static int8_t readBits(uint8_t dev_addr, uint8_t reg_addr, uint8_t bit_start, uint8_t length,
-                         uint8_t *data, uint16_t timeout = I2Cdev::read_timeout);
-
-  /** 
-   * @brief Read multiple bits from a 16-bit device register.
-   * 
-   * @param dev_addr I2C slave device address
-   * @param reg_addr Register reg_addr to read from
-   * @param bit_start First bit position to read (0-15)
-   * @param length Number of bits to read (not more than 16)
-   * @param data Container for right-aligned value (i.e. '101' read from any bit_start position will equal 0x05)
-   * @param timeout Optional read timeout in milliseconds (0 to disable, leave 
-   * off to use default class value in I2Cdev::readTimeout)
-   * @return Status of read operation (1 = success, 0 = failure, -1 = timeout)
-   */
-  static int8_t readBitsW(uint8_t dev_addr, uint8_t reg_addr, uint8_t bit_start, uint8_t length,
-                          uint16_t *data, uint16_t timeout = I2Cdev::read_timeout);
-
-  /** 
-   * @brief Read single byte from an 8-bit device register.
-   * 
-   * @param dev_addr I2C slave device address
-   * @param reg_addr Register reg_addr to read from
-   * @param data Container for byte value read from device
-   * @param timeout Optional read timeout in milliseconds (0 to disable, leave 
-   * off to use default class value in I2Cdev::readTimeout)
-   * @return Status of read operation (true = success)
-   */
-  static int8_t readByte(uint8_t dev_addr, uint8_t reg_addr, uint8_t *data, uint16_t timeout = I2Cdev::read_timeout);
-
-  /** 
-   * @brief Read single word from a 16-bit device register.
-   * 
-   * @param dev_addr I2C slave device address
-   * @param reg_addr Register reg_addr to read from
-   * @param data Container for word value read from device
-   * @param timeout Optional read timeout in milliseconds (0 to disable, leave
-   * off to use default class value in I2Cdev::readTimeout)
-   * @return Status of read operation (true = success)
-   */
-  static int8_t readWord(uint8_t dev_addr, uint8_t reg_addr, uint16_t *data, uint16_t timeout = I2Cdev::read_timeout);
+  void openI2CBus(const std::string& bus_uri);
 
   /** 
    * @brief Read multiple bytes from an 8-bit device register.
-   * @param dev_addr I2C slave device address
+
    * @param reg_addr First register reg_addr to read from
    * @param length Number of bytes to read
    * @param data Buffer to store read data in
-   * @param timeout Optional read timeout in milliseconds (0 to disable, leave off
-   * to use default class value in I2Cdev::readTimeout)
-   * @return Number of bytes read (-1 indicates failure)
+   * @throw std::runtime_error Thrown if read operation fails
    */
-  static int8_t readBytes(uint8_t dev_addr, uint8_t reg_addr, uint8_t length,
-                          uint8_t *data, uint16_t timeout = I2Cdev::read_timeout);
+  void readBytes(uint8_t reg_addr, uint8_t length, uint8_t *data);
 
   /** 
    * @brief Read multiple words from a 16-bit device register.
    * 
-   * @param dev_addr I2C slave device address
    * @param reg_addr First register reg_addr to read from
    * @param length Number of words to read
    * @param data Buffer to store read data in
-   * @param timeout Optional read timeout in milliseconds (0 to disable, leave off to use default class value in I2Cdev::readTimeout)
-   * @return Number of words read (-1 indicates failure)
+   * @throw std::runtime_error Thrown if read operation fails
    */
-  static int8_t readWords(uint8_t dev_addr, uint8_t reg_addr, uint8_t length,
-                          uint16_t *data, uint16_t timeout = I2Cdev::read_timeout);
+  void readWords(uint8_t reg_addr, uint8_t length, uint16_t *dat);
 
   /** 
-   * @brief Write a single bit in an 8-bit device register.
+   * @brief Read single byte from an 8-bit device register.
    * 
-   * @param dev_addr I2C slave device address
-   * @param reg_addr Register reg_addr to write to
-   * @param bit_num Bit position to write (0-7)
-   * @param value New bit value to write
-   * @return Status of operation (true = success)
+   * @param reg_addr Register reg_addr to read from
+   * @throw std::runtime_error Thrown if read operation fails
    */
-  static bool writeBit(uint8_t dev_addr, uint8_t reg_addr, uint8_t bit_num, uint8_t data);
+  uint8_t readByte(uint8_t reg_addr);
 
   /** 
-   * @brief Write a single bit in a 16-bit device register.
+   * @brief Read single word from a 16-bit device register.
    * 
-   * @param dev_addr I2C slave device address
-   * @param reg_addr Register reg_addr to write to
-   * @param bit_num Bit position to write (0-15)
-   * @param value New bit value to write
-   * @return Status of operation (true = success)
+   * @param reg_addr Register reg_addr to read from
+   * @throw std::runtime_error Thrown if read operation fails
    */
-  static bool writeBitW(uint8_t dev_addr, uint8_t reg_addr, uint8_t bit_num, uint16_t data);
+  uint16_t readWord(uint8_t reg_addr);
 
   /** 
-   * @brief Write multiple bits in an 8-bit device register.
+   * @brief Read a single bit from an 8-bit device register.
    * 
-   * @param dev_addr I2C slave device address
-   * @param reg_addr Register reg_addr to write to
-   * @param bit_start First bit position to write (0-7)
-   * @param length Number of bits to write (not more than 8)
-   * @param data Right-aligned value to write
-   * @return Status of operation (true = success)
+   * @param reg_addr Register regAddr to read from
+   * @param bit_num Bit position to read (0-7)
+   * @throw std::runtime_error If bit num is out of range allowed or read operation fails
    */
-  static bool writeBits(uint8_t dev_addr, uint8_t reg_addr, uint8_t bit_start, uint8_t length, uint8_t data);
+  uint8_t readBitOfByte(uint8_t reg_addr, uint8_t bit_num);
+
 
   /** 
-   * @brief Write multiple bits in a 16-bit device register.
+   * @brief Read a single bit from a 16-bit device register.
    * 
-   * @param dev_addr I2C slave device address
-   * @param reg_addr Register reg_addr to write to
-   * @param bit_start First bit position to write (0-15)
-   * @param length Number of bits to write (not more than 16)
-   * @param data Right-aligned value to write
-   * @return Status of operation (true = success)
+   * @param reg_addr Register reg_addr to read from
+   * @param bit_num Bit position to read (0-15)
+   * @throw std::runtime_error If bit num is out of range allowed or read operation fails
    */
-  static bool writeBitsW(uint8_t dev_addr, uint8_t reg_addr, uint8_t bit_start, uint8_t length, uint16_t data);
+  uint16_t readBitOfWord(uint8_t reg_addr, uint8_t bit_num);
 
   /** 
-   * @brief Write single byte to an 8-bit device register.
+   * @brief Read multiple bits from an 8-bit device register.
    * 
-   * @param dev_addr I2C slave device address
-   * @param reg_addr Register address to write to
-   * @param data New byte value to write
-   * @return Status of operation (true = success)
+   * @param reg_addr Register reg_addr to read from
+   * @param bit_start First bit position to read (0-7)
+   * @param length Number of bits to read (bit_start + length have to <= number of bits in a byte)
+   * @throw std::runtime_error If bits range is invalid or read operation fails
+   * @return Right-aligned value (i.e. '101' read from any bit_start position wi1ll equal 0x05)
    */
-  static bool writeByte(uint8_t dev_addr, uint8_t reg_addr, uint8_t data);
+  uint8_t readBitsOfByte(uint8_t reg_addr, uint8_t bit_start, uint8_t length);
 
   /** 
-   * @brief Write single word to a 16-bit device register.
+   * @brief Read multiple bits from a 16-bit device register.
    * 
-   * @param dev_addr I2C slave device address
-   * @param reg_addr Register address to write to
-   * @param data New word value to write
-   * @return Status of operation (true = success)
+   * @param reg_addr Register reg_addr to read from
+   * @param bit_start First bit position to read (0-15)
+   * @param length Number of bits to read (bit_start + length have to <= number of bits in a byte)
+   * @throw std::runtime_error If bits range is invalid or read operation fails1
+   * @return Right-aligned value (i.e. '101' read from any bit_start position will equal 0x05)
    */
-  static bool writeWord(uint8_t dev_addr, uint8_t reg_addr, uint16_t data);
+  uint16_t readBitsOfWord(uint8_t reg_addr, uint8_t bit_start, uint8_t length);
 
   /** 
    * @brief Write multiple bytes to an 8-bit device register.
    * 
-   * @param dev_addr I2C slave device address
    * @param reg_addr First register address to write to
    * @param length Number of bytes to write
    * @param data Buffer to copy new data from
-   * @return Status of operation (true = success)
+   * @throw std::runtime_error Thrown if write operation fails
    */
-  static bool writeBytes(uint8_t dev_addr, uint8_t reg_addr, uint8_t length, uint8_t *data);
+  void writeBytes(uint8_t reg_addr, uint8_t length, uint8_t *data);
 
   /** 
    * @brief Write multiple words to a 16-bit device register.
    * 
-   * @param dev_addr I2C slave device address
    * @param reg_addr First register address to write to
    * @param length Number of words to write
    * @param data Buffer to copy new data from
-   * @return Status of operation (true = success)
+   * @throw std::runtime_error Thrown if write operation fails
    */
-  static bool writeWords(uint8_t dev_addr, uint8_t reg_addr, uint8_t length, uint16_t *data);
+  void writeWords(uint8_t reg_addr, uint8_t length, uint16_t *data);
 
-  static uint16_t read_timeout;
+  /** 
+   * @brief Write single byte to an 8-bit device register.
+   * 
+   * @param reg_addr Register address to write to
+   * @param data New byte value to write
+   * @throw std::runtime_error Thrown if write operation fails
+   */
+  void writeByte(uint8_t reg_addr, uint8_t data);
+
+  /** 
+   * @brief Write single word to a 16-bit device register.
+   * 
+   * @param reg_addr Register address to write to
+   * @param data New word value to write
+   * @throw std::runtime_error Thrown if write operation fails
+   */
+  void writeWord(uint8_t reg_addr, uint16_t data);
+
+  /** 
+   * @brief Set a single bit in an 8-bit device register.
+   * 
+   * @param reg_addr Register reg_addr to write to
+   * @param bit_num Bit position to set (0-7)
+   * @throw std::runtime_error If bit num is out of range allowed or write in register operation fails
+   */
+  void setByteBit(uint8_t reg_addr, uint8_t bit_num);
+
+  /** 
+   * @brief Clear a single bit in an 8-bit device register.
+   * 
+   * @param reg_addr Register reg_addr to write to
+   * @param bit_num Bit position to clear (0-7)
+   * @throw std::runtime_error If bit num is out of range allowed or write in register operation fails
+   */
+  void clearByteBit(uint8_t reg_addr, uint8_t bit_num);
+
+  /** 
+   * @brief Set a single bit in a 16-bit device register.
+   * 
+   * @param reg_addr Register reg_addr to write to
+   * @param bit_num Bit position to write (0-15)
+   * @throw std::runtime_error If bit num is out of range allowed or write in register operation fails
+   */
+  void setWordBit(uint8_t reg_addr, uint8_t bit_num);
+
+  /** 
+   * @brief Clear a single bit in an 16-bit device register.
+   * 
+   * @param reg_addr Register reg_addr to write to
+   * @param bit_num Bit position to clear (0-7)
+   * @throw std::runtime_error If bit num is out of range allowed or write in register operation fails
+   */
+  void clearWordBit(uint8_t reg_addr, uint8_t bit_num);
+
+  /** 
+   * @brief Write multiple bits in an 8-bit device register.
+   * 
+   * @param reg_addr Register reg_addr to write to
+   * @param bit_start First bit position to write (0-7)
+   * @param length Number of bits to write (not more than 8)
+   * @param data Right-aligned value to write
+   * @throw std::runtime_error If bits range is invalid or getting actual register value fails
+   * or write the new value in register fails
+   */
+  void writeByteBits(uint8_t reg_addr, uint8_t bit_start, uint8_t length, uint8_t data);
+
+  /** 
+   * @brief Write multiple bits in a 16-bit device register.
+   * 
+   * @param reg_addr Register reg_addr to write to
+   * @param bit_start First bit position to write (0-15)
+   * @param length Number of bits to write (not more than 16)
+   * @param data Right-aligned value to write
+   * @throw std::runtime_error If bits range is invalid or getting actual register value fails
+   * or write the new value in register fails
+   */
+  void writeWordBits(uint8_t reg_addr, uint8_t bit_start, uint8_t length, uint16_t data);
+
+
+  uint16_t read_timeout;
+
+ private:
+  int i2c_bus_fd_;
+  std::string bur_uri_;
+  uint8_t dev_addr_;
+  void throwIOSystemError(const std::string& msg);
+
+  template <typename T>
+  void checkBitNumber(uint8_t bit_number) {
+    if (bit_number >= std::numeric_limits<T>::digits) throw std::runtime_error("Bit index invalid");
+  }
+
+  template <typename T>
+  void checkBitsRange(uint8_t bit_start, uint8_t length) {
+    if ((bit_start + length) > std::numeric_limits<T>::digits) throw std::runtime_error("Bits range invalid");
+  }
+
+  template <typename T>
+  T generateBitMask(uint8_t bit_start, uint8_t length) {
+    return ((1 << length) - 1) << bit_start;
+  }
 };
 
 #endif  // MPU6050_DRIVER_I2C_DEV_HPP_

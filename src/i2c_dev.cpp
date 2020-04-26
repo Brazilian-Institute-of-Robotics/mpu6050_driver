@@ -45,145 +45,201 @@ THE SOFTWARE.
 ===============================================
 */
 
+#include <unistd.h>
+#include <linux/i2c-dev.h>
+#include <sys/ioctl.h>
+#include <fcntl.h>
+
+#include <cerrno>
+#include <cstring>
+#include <sstream>
+#include <stdexcept>
+
 #include "mpu6050_driver/i2c_dev.hpp"
-#include "wiringPiI2C.h"  
 
-I2Cdev::I2Cdev() {
+I2Cdev::I2Cdev(uint8_t dev_addr) : dev_addr_(dev_addr) {}
+
+void I2Cdev::openI2CBus(const std::string& bus_uri) {
+  if ((i2c_bus_fd_ = open(bus_uri.c_str(), O_RDWR)) < 0)
+    throwIOSystemError("Error obtaining I2C system file descriptor");
+
+  if (ioctl(i2c_bus_fd_, I2C_SLAVE, dev_addr_) < 0) {
+    std::stringstream error_msg;
+    error_msg << "Failed to set I2C_SLAVE at address: 0x" << std::hex << dev_addr_;
+    throwIOSystemError(error_msg.str());
+  }
 }
 
-int8_t I2Cdev::readBit(uint8_t dev_addr, uint8_t reg_addr, uint8_t bit_num, uint8_t *data, uint16_t timeout) {
-  uint8_t b;
-  uint8_t count = readByte(dev_addr, reg_addr, &b, timeout);
-  *data = b & (1 << bit_num);
-  return count;
+void I2Cdev::readBytes(uint8_t reg_addr, uint8_t length, uint8_t *data) {
+  if (write(i2c_bus_fd_, &reg_addr, 1) < 0) throwIOSystemError("Failed to write to the I2C bus");
+
+  int bytes_received = read(i2c_bus_fd_, data, length);
+  if (bytes_received < 0 || bytes_received != length) throwIOSystemError("Failed to read from the I2C bus");
 }
 
-int8_t I2Cdev::readBitW(uint8_t dev_addr, uint8_t reg_addr, uint8_t bit_num, uint16_t *data, uint16_t timeout) {
-  uint16_t b;
-  uint8_t count = readWord(dev_addr, reg_addr, &b, timeout);
-  *data = b & (1 << bit_num);
-  return count;
-}
+void I2Cdev::readWords(uint8_t reg_addr, uint8_t length, uint16_t *data) {
+  if (write(i2c_bus_fd_, &reg_addr, 1) < 0) throwIOSystemError("Failed to write to the I2C bus");
 
-int8_t I2Cdev::readBits(uint8_t dev_addr, uint8_t reg_addr, uint8_t bit_start,
-                        uint8_t length, uint8_t *data, uint16_t timeout) {
-  // 01101001 read byte
-  // 76543210 bit numbers
-  //    xxx   args: bit_start=4, length=3
-  //    010   masked
-  //   -> 010 shifted
-  uint8_t count, b;
-  if ((count = readByte(dev_addr, reg_addr, &b, timeout)) != 0) {
-      uint8_t mask = ((1 << length) - 1) << (bit_start - length + 1);
-      b &= mask;
-      b >>= (bit_start - length + 1);
-      *data = b;
+  int in_buf_length = length * 2;
+  uint8_t *in_buf = new uint8_t[in_buf_length];
+
+  int bytes_received = read(i2c_bus_fd_, data, in_buf_length);
+  if (bytes_received < 0 || bytes_received != in_buf_length) {
+    delete[] in_buf;
+    throwIOSystemError("Failed to read from the I2C bus");
   }
 
-  return count;
+  for (size_t i = 0; i < length; i++) data[i] = (in_buf[i] << 8) | in_buf[i+1];
+
+  delete[] in_buf;
 }
 
-int8_t I2Cdev::readBitsW(uint8_t dev_addr, uint8_t reg_addr, uint8_t bit_start,
-                         uint8_t length, uint16_t *data, uint16_t timeout) {
-  // 1101011001101001 read byte
-  // fedcba9876543210 bit numbers
-  //    xxx           args: bit_start=12, length=3
-  //    010           masked
-  //           -> 010 shifted
-  uint8_t count;
-  uint16_t w;
-  if ((count = readWord(dev_addr, reg_addr, &w, timeout)) != 0) {
-      uint16_t mask = ((1 << length) - 1) << (bit_start - length + 1);
-      w &= mask;
-      w >>= (bit_start - length + 1);
-      *data = w;
+uint8_t I2Cdev::readByte(uint8_t reg_addr) {
+  uint8_t byte_read;
+  this->readBytes(reg_addr, 1, &byte_read);
+  return byte_read;
+}
+
+uint16_t I2Cdev::readWord(uint8_t reg_addr) {
+  uint16_t word_read;
+  this->readWords(reg_addr, 1, &word_read);
+  return word_read;
+}
+
+uint8_t I2Cdev::readBitOfByte(uint8_t reg_addr, uint8_t bit_num) {
+  this->checkBitNumber<uint8_t>(bit_num);
+  return this->readByte(reg_addr) & (1 << bit_num);
+}
+
+uint16_t I2Cdev::readBitOfWord(uint8_t reg_addr, uint8_t bit_num) {
+  this->checkBitNumber<uint16_t>(bit_num);
+  return this->readWord(reg_addr) & (1 << bit_num);
+}
+
+uint8_t I2Cdev::readBitsOfByte(uint8_t reg_addr, uint8_t bit_start, uint8_t length) {
+  this->checkBitsRange<uint8_t>(bit_start, length);
+  uint8_t mask = this->generateBitMask<uint8_t>(bit_start, length);
+  uint8_t byte_read = this->readByte(reg_addr);
+  return (byte_read & mask) >> bit_start;
+}
+
+uint16_t I2Cdev::readBitsOfWord(uint8_t reg_addr, uint8_t bit_start, uint8_t length) {
+  this->checkBitsRange<uint16_t>(bit_start, length);
+  uint16_t mask = this->generateBitMask<uint16_t>(bit_start, length);
+  uint16_t byte_read = this->readWord(reg_addr);
+  return (byte_read & mask) >> bit_start;
+}
+
+
+void I2Cdev::writeBytes(uint8_t reg_addr, uint8_t length, uint8_t* data) {
+  uint8_t *out_buf = new uint8_t[length + 1];
+  out_buf[0] = reg_addr;
+  memcpy(&out_buf[1], data, length);
+
+  if (write(i2c_bus_fd_, out_buf, length + 1) < 0) {
+    delete[] out_buf;
+    throwIOSystemError("Failed to write to the I2C bus");
   }
-  return count;
+
+  delete[] out_buf;
 }
 
-int8_t I2Cdev::readByte(uint8_t dev_addr, uint8_t reg_addr, uint8_t *data, uint16_t timeout) {
-    return readBytes(dev_addr, reg_addr, 1, data, timeout);
+void I2Cdev::writeWords(uint8_t reg_addr, uint8_t length, uint16_t* data) {
+  size_t out_buf_length = (2 * length) + 1;
+  uint8_t *out_buf = new uint8_t[out_buf_length];
+  out_buf[0] = reg_addr;
+
+  for (size_t i = 1; i <= length; i++) {
+    out_buf[i] = data[i] >> 8;
+    out_buf[i+1] = data[i];
+  }
+
+  if (write(i2c_bus_fd_, out_buf, out_buf_length) < 0) {
+    delete[] out_buf;
+    throwIOSystemError("Failed to write to the I2C bus");
+  }
+
+  delete[] out_buf;
 }
 
-int8_t I2Cdev::readWord(uint8_t dev_addr, uint8_t reg_addr, uint16_t *data, uint16_t timeout) {
-    return readWords(dev_addr, reg_addr, 1, data, timeout);
+void I2Cdev::writeByte(uint8_t reg_addr, uint8_t data) {
+  this->writeBytes(reg_addr, 1, &data);
 }
 
-int8_t I2Cdev::readBytes(uint8_t dev_addr, uint8_t reg_addr, uint8_t length, uint8_t *data, uint16_t timeout) {
-
+void I2Cdev::writeWord(uint8_t reg_addr, uint16_t data) {
+  this->writeWords(reg_addr, 1, &data);
 }
 
-int8_t I2Cdev::readWords(uint8_t dev_addr, uint8_t reg_addr, uint8_t length, uint16_t *data, uint16_t timeout) {
+void I2Cdev::setByteBit(uint8_t reg_addr, uint8_t bit_num) {
+  this->checkBitNumber<uint8_t>(bit_num);
+  uint8_t byte_read = this->readByte(reg_addr);
+  return writeByte(reg_addr, byte_read | (1 << bit_num));
 }
 
-
-bool I2Cdev::writeBit(uint8_t dev_addr, uint8_t reg_addr, uint8_t bit_num, uint8_t data) {
-  uint8_t b;
-  readByte(dev_addr, reg_addr, &b);
-  b = (data != 0) ? (b | (1 << bit_num)) : (b & ~(1 << bit_num));
-  return writeByte(dev_addr, reg_addr, b);
+void I2Cdev::clearByteBit(uint8_t reg_addr, uint8_t bit_num) {
+  this->checkBitNumber<uint8_t>(bit_num);
+  uint8_t byte_read = this->readByte(reg_addr);
+  return writeByte(reg_addr, byte_read & ~(1 << bit_num));
 }
 
-bool I2Cdev::writeBitW(uint8_t dev_addr, uint8_t reg_addr, uint8_t bit_num, uint16_t data) {
-  uint16_t w;
-  readWord(dev_addr, reg_addr, &w);
-  w = (data != 0) ? (w | (1 << bit_num)) : (w & ~(1 << bit_num));
-  return writeWord(dev_addr, reg_addr, w);
+void I2Cdev::setWordBit(uint8_t reg_addr, uint8_t bit_num) {
+  this->checkBitNumber<uint16_t>(bit_num);
+  uint16_t word_read = this->readWord(reg_addr);
+  return writeWord(reg_addr, word_read | (1 << bit_num));
 }
 
-bool I2Cdev::writeBits(uint8_t dev_addr, uint8_t reg_addr, uint8_t bit_start, uint8_t length, uint8_t data) {
-  //      010 value to write
+void I2Cdev::clearWordBit(uint8_t reg_addr, uint8_t bit_num) {
+  this->checkBitNumber<uint16_t>(bit_num);
+  uint16_t word_read = this->readByte(reg_addr);
+  return writeByte(reg_addr, word_read & ~(1 << bit_num));
+}
+
+void I2Cdev::writeByteBits(uint8_t reg_addr, uint8_t bit_start, uint8_t length, uint8_t data) {
+  //      110 value to write
   // 76543210 bit numbers
   //    xxx   args: bit_start=4, length=3
-  // 00011100 mask byte
+  // 01110000 mask byte
   // 10101111 original value (sample)
-  // 10100011 original & ~mask
-  // 10101011 masked | value
-  uint8_t b;
-  if (readByte(dev_addr, reg_addr, &b) != 0) {
-    uint8_t mask = ((1 << length) - 1) << (bit_start - length + 1);
-    data <<= (bit_start - length + 1);  // shift data into correct position
-    data &= mask;  // zero all non-important bits in data
-    b &= ~(mask);  // zero all important bits in existing byte
-    b |= data;  // combine data with existing byte
-    return writeByte(dev_addr, reg_addr, b);
-  }
+  // 10001111 original & ~mask
+  // 11101011 masked | value
+  this->checkBitsRange<uint8_t>(bit_start, length);
+  uint8_t byte_read = readByte(reg_addr);
+  uint8_t mask = this->generateBitMask<uint8_t>(bit_start, length);
 
-  return false;
+  data <<= bit_start;     // shift data into correct position
+  data &= mask;           // zero all non-important bits in data
+  byte_read &= ~(mask);   // zero all important bits in existing byte
+  byte_read |= data;      // combine data with existing byte
+
+  writeByte(reg_addr, byte_read);
 }
 
-bool I2Cdev::writeBitsW(uint8_t dev_addr, uint8_t reg_addr, uint8_t bit_start, uint8_t length, uint16_t data) {
-  //              010 value to write
+void I2Cdev::writeWordBits(uint8_t reg_addr, uint8_t bit_start, uint8_t length, uint16_t data) {
+  //              110 value to write
   // fedcba9876543210 bit numbers
   //    xxx           args: bit_start=12, length=3
-  // 0001110000000000 mask word
+  // 0111000000000000 mask word
   // 1010111110010110 original value (sample)
-  // 1010001110010110 original & ~mask
-  // 1010101110010110 masked | value
-  uint16_t w;
-  if (readWord(dev_addr, reg_addr, &w) != 0) {
-    uint16_t mask = ((1 << length) - 1) << (bit_start - length + 1);
-    data <<= (bit_start - length + 1);  // shift data into correct position
-    data &= mask;  // zero all non-important bits in data
-    w &= ~(mask);  // zero all important bits in existing word
-    w |= data;  // combine data with existing word
-    return writeWord(dev_addr, reg_addr, w);
-  }
+  // 1000111110010110 original & ~mask
+  // 1110101110010110 masked | value
+  this->checkBitsRange<uint16_t>(bit_start, length);
+  uint16_t word_read = readByte(reg_addr);
+  uint16_t mask = this->generateBitMask<uint16_t>(bit_start, length);
 
-  return false;
+  data <<= bit_start;     // shift data into correct position
+  data &= mask;           // zero all non-important bits in data
+  word_read &= ~(mask);   // zero all important bits in existing byte
+  word_read |= data;      // combine data with existing byte
+
+  writeWord(reg_addr, word_read);
 }
 
-bool I2Cdev::writeByte(uint8_t dev_addr, uint8_t reg_addr, uint8_t data) {
-    return writeBytes(dev_addr, reg_addr, 1, &data);
+void I2Cdev::throwIOSystemError(const std::string& msg) {
+  std::stringstream error_msg;
+  error_msg << msg << ": " << std::strerror(errno);
+  throw std::runtime_error(error_msg.str());
 }
 
-bool I2Cdev::writeWord(uint8_t dev_addr, uint8_t reg_addr, uint16_t data) {
-    return writeWords(dev_addr, reg_addr, 1, &data);
-}
-
-bool I2Cdev::writeBytes(uint8_t dev_addr, uint8_t reg_addr, uint8_t length, uint8_t* data) {
-
-}
-
-bool I2Cdev::writeWords(uint8_t dev_addr, uint8_t reg_addr, uint8_t length, uint16_t* data) {
+I2Cdev::~I2Cdev() {
+  close(i2c_bus_fd_);
 }
