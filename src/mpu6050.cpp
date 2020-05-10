@@ -133,11 +133,7 @@ bool MPU6050::getAccelXSelfTest() {
 }
 
 void MPU6050::setAccelXSelfTest(bool enabled) {
-  if (enabled) {
-    mpu.setByteBit(MPU6050_RA_ACCEL_CONFIG, MPU6050_ACONFIG_XA_ST_BIT);
-    return;
-  }
-  mpu.clearByteBit(MPU6050_RA_ACCEL_CONFIG, MPU6050_ACONFIG_XA_ST_BIT);
+  mpu.changeByteBitValue(MPU6050_RA_ACCEL_CONFIG, MPU6050_ACONFIG_XA_ST_BIT, enabled);
 }
 
 bool MPU6050::getAccelYSelfTest() {
@@ -145,11 +141,7 @@ bool MPU6050::getAccelYSelfTest() {
 }
 
 void MPU6050::setAccelYSelfTest(bool enabled) {
-  if (enabled) {
-    mpu.setByteBit(MPU6050_RA_ACCEL_CONFIG, MPU6050_ACONFIG_YA_ST_BIT);
-    return;
-  }
-  mpu.clearByteBit(MPU6050_RA_ACCEL_CONFIG, MPU6050_ACONFIG_YA_ST_BIT);
+  mpu.changeByteBitValue(MPU6050_RA_ACCEL_CONFIG, MPU6050_ACONFIG_YA_ST_BIT, enabled);
 }
 
 bool MPU6050::getAccelZSelfTest() {
@@ -157,11 +149,7 @@ bool MPU6050::getAccelZSelfTest() {
 }
 
 void MPU6050::setAccelZSelfTest(bool enabled) {
-  if (enabled) {
-    mpu.setByteBit(MPU6050_RA_ACCEL_CONFIG, MPU6050_ACONFIG_ZA_ST_BIT);
-    return;
-  }
-  mpu.clearByteBit(MPU6050_RA_ACCEL_CONFIG, MPU6050_ACONFIG_ZA_ST_BIT);
+  mpu.changeByteBitValue(MPU6050_RA_ACCEL_CONFIG, MPU6050_ACONFIG_ZA_ST_BIT, enabled);
 }
 
 uint8_t MPU6050::getFullScaleAccelRange() {
@@ -177,7 +165,8 @@ uint8_t MPU6050::getDHPFMode() {
 }
 
 void MPU6050::setDHPFMode(uint8_t mode) {
-  mpu.setByteBits(MPU6050_RA_ACCEL_CONFIG, MPU6050_ACONFIG_ACCEL_HPF_BIT, MPU6050_ACONFIG_ACCEL_HPF_LENGTH, bandwidth);
+  mpu.setByteBits(MPU6050_RA_ACCEL_CONFIG, MPU6050_ACONFIG_ACCEL_HPF_BIT,
+                  MPU6050_ACONFIG_ACCEL_HPF_LENGTH, mode);
 }
 
 uint8_t MPU6050::getFreefallDetectionThreshold() {
@@ -233,11 +222,7 @@ bool MPU6050::getTempFIFOEnabled() {
 }
 
 void MPU6050::setTempFIFOEnabled(bool enabled) {
-  if (enabled) {
-    mpu.setByteBit(MPU6050_RA_FIFO_EN, MPU6050_TEMP_FIFO_EN_BIT);
-    return;
-  }
-  mpu.clearByteBit(MPU6050_RA_FIFO_EN, MPU6050_TEMP_FIFO_EN_BIT);
+  mpu.changeByteBitValue(MPU6050_RA_FIFO_EN, MPU6050_TEMP_FIFO_EN_BIT, enabled);
 }
 
 bool MPU6050::getXGyroFIFOEnabled() {
@@ -245,11 +230,7 @@ bool MPU6050::getXGyroFIFOEnabled() {
 }
 
 void MPU6050::setXGyroFIFOEnabled(bool enabled) {
-  if (enabled) {
-    mpu.setByteBit(MPU6050_RA_FIFO_EN, MPU6050_XG_FIFO_EN_BIT);
-    return;
-  }
-  mpu.clearByteBit(MPU6050_RA_FIFO_EN, MPU6050_XG_FIFO_EN_BIT);
+  mpu.changeByteBitValue(MPU6050_RA_FIFO_EN, MPU6050_XG_FIFO_EN_BIT, enabled);
 }
 
 bool MPU6050::getYGyroFIFOEnabled() {
@@ -367,7 +348,7 @@ bool MPU6050::getSlaveEnabled(uint8_t num) {
 
 void MPU6050::setSlaveEnabled(uint8_t num, bool enabled) {
   if (num > 3) return;
-  mpu.setByteBit(MPU6050_RA_I2C_SLV0_CTRL + (num * 3), MPU6050_I2C_SLV_EN_BIT, enabled);
+  mpu.changeByteBitValue(MPU6050_RA_I2C_SLV0_CTRL + (num * 3), MPU6050_I2C_SLV_EN_BIT, enabled);
 }
 
 bool MPU6050::getSlaveWordByteSwap(uint8_t num) {
@@ -377,7 +358,7 @@ bool MPU6050::getSlaveWordByteSwap(uint8_t num) {
 
 void MPU6050::setSlaveWordByteSwap(uint8_t num, bool enabled) {
   if (num > 3) return;
-  mpu.setByteBit(MPU6050_RA_I2C_SLV0_CTRL + (num * 3), MPU6050_I2C_SLV_BYTE_SW_BIT, enabled);
+  mpu.changeByteBitValue(MPU6050_RA_I2C_SLV0_CTRL + (num * 3), MPU6050_I2C_SLV_BYTE_SW_BIT, enabled);
 }
 
 bool MPU6050::getSlaveWriteMode(uint8_t num) {
@@ -387,7 +368,7 @@ bool MPU6050::getSlaveWriteMode(uint8_t num) {
 
 void MPU6050::setSlaveWriteMode(uint8_t num, bool mode) {
   if (num > 3) return;
-  mpu.setByteBit(MPU6050_RA_I2C_SLV0_CTRL + (num * 3), MPU6050_I2C_SLV_REG_DIS_BIT, mode);
+  mpu.changeByteBitValue(MPU6050_RA_I2C_SLV0_CTRL + (num * 3), MPU6050_I2C_SLV_REG_DIS_BIT, mode);
 }
 
 bool MPU6050::getSlaveWordGroupOffset(uint8_t num) {
@@ -397,7 +378,7 @@ bool MPU6050::getSlaveWordGroupOffset(uint8_t num) {
 
 void MPU6050::setSlaveWordGroupOffset(uint8_t num, bool enabled) {
   if (num > 3) return;
-  mpu.setByteBit(MPU6050_RA_I2C_SLV0_CTRL + (num * 3), MPU6050_I2C_SLV_GRP_BIT, enabled);
+  mpu.changeByteBitValue(MPU6050_RA_I2C_SLV0_CTRL + (num * 3), MPU6050_I2C_SLV_GRP_BIT, enabled);
 }
 
 uint8_t MPU6050::getSlaveDataLength(uint8_t num) {
@@ -435,11 +416,7 @@ bool MPU6050::getSlave4Enabled() {
 }
 
 void MPU6050::setSlave4Enabled(bool enabled) {
-  if (enabled) {
-    mpu.setByteBit(MPU6050_RA_I2C_SLV4_CTRL, MPU6050_I2C_SLV4_EN_BIT);
-    return;
-  }
-  mpu.clearByteBit(MPU6050_RA_I2C_SLV4_CTRL, MPU6050_I2C_SLV4_EN_BIT);
+  mpu.changeByteBitValue(MPU6050_RA_I2C_SLV4_CTRL, MPU6050_I2C_SLV4_EN_BIT, enabled);
 }
 
 bool MPU6050::getSlave4InterruptEnabled() {
@@ -447,7 +424,7 @@ bool MPU6050::getSlave4InterruptEnabled() {
 }
 
 void MPU6050::setSlave4InterruptEnabled(bool enabled) {
-  mpu.setByteBit(MPU6050_RA_I2C_SLV4_CTRL, MPU6050_I2C_SLV4_INT_EN_BIT, enabled);
+  mpu.changeByteBitValue(MPU6050_RA_I2C_SLV4_CTRL, MPU6050_I2C_SLV4_INT_EN_BIT, enabled);
 }
 
 bool MPU6050::getSlave4WriteMode() {
@@ -455,7 +432,7 @@ bool MPU6050::getSlave4WriteMode() {
 }
 
 void MPU6050::setSlave4WriteMode(bool mode) {
-  mpu.setByteBit(MPU6050_RA_I2C_SLV4_CTRL, MPU6050_I2C_SLV4_REG_DIS_BIT, mode);
+  mpu.changeByteBitValue(MPU6050_RA_I2C_SLV4_CTRL, MPU6050_I2C_SLV4_REG_DIS_BIT, mode);
 }
 
 uint8_t MPU6050::getSlave4MasterDelay() {
@@ -507,7 +484,7 @@ bool MPU6050::getInterruptMode() {
 }
 
 void MPU6050::setInterruptMode(bool mode) {
-  mpu.setByteBit(MPU6050_RA_INT_PIN_CFG, MPU6050_INTCFG_INT_LEVEL_BIT, mode);
+  mpu.changeByteBitValue(MPU6050_RA_INT_PIN_CFG, MPU6050_INTCFG_INT_LEVEL_BIT, mode);
 }
 
 bool MPU6050::getInterruptDrive() {
@@ -515,7 +492,7 @@ bool MPU6050::getInterruptDrive() {
 }
 
 void MPU6050::setInterruptDrive(bool drive) {
-  mpu.setByteBit(MPU6050_RA_INT_PIN_CFG, MPU6050_INTCFG_INT_OPEN_BIT, drive);
+  mpu.changeByteBitValue(MPU6050_RA_INT_PIN_CFG, MPU6050_INTCFG_INT_OPEN_BIT, drive);
 }
 
 bool MPU6050::getInterruptLatch() {
@@ -523,7 +500,7 @@ bool MPU6050::getInterruptLatch() {
 }
 
 void MPU6050::setInterruptLatch(bool latch) {
-  mpu.setByteBit(MPU6050_RA_INT_PIN_CFG, MPU6050_INTCFG_LATCH_INT_EN_BIT, latch);
+  mpu.changeByteBitValue(MPU6050_RA_INT_PIN_CFG, MPU6050_INTCFG_LATCH_INT_EN_BIT, latch);
 }
 
 bool MPU6050::getInterruptLatchClear() {
@@ -531,7 +508,7 @@ bool MPU6050::getInterruptLatchClear() {
 }
 
 void MPU6050::setInterruptLatchClear(bool clear) {
-  mpu.setByteBit(MPU6050_RA_INT_PIN_CFG, MPU6050_INTCFG_INT_RD_CLEAR_BIT, clear);
+  mpu.changeByteBitValue(MPU6050_RA_INT_PIN_CFG, MPU6050_INTCFG_INT_RD_CLEAR_BIT, clear);
 }
 
 bool MPU6050::getFSyncInterruptLevel() {
@@ -539,7 +516,7 @@ bool MPU6050::getFSyncInterruptLevel() {
 }
 
 void MPU6050::setFSyncInterruptLevel(bool level) {
-  mpu.setByteBit(MPU6050_RA_INT_PIN_CFG, MPU6050_INTCFG_FSYNC_INT_LEVEL_BIT, level);
+  mpu.changeByteBitValue(MPU6050_RA_INT_PIN_CFG, MPU6050_INTCFG_FSYNC_INT_LEVEL_BIT, level);
 }
 
 bool MPU6050::getFSyncInterruptEnabled() {
@@ -547,7 +524,7 @@ bool MPU6050::getFSyncInterruptEnabled() {
 }
 
 void MPU6050::setFSyncInterruptEnabled(bool enabled) {
-  mpu.setByteBit(MPU6050_RA_INT_PIN_CFG, MPU6050_INTCFG_FSYNC_INT_EN_BIT, enabled);
+  mpu.changeByteBitValue(MPU6050_RA_INT_PIN_CFG, MPU6050_INTCFG_FSYNC_INT_EN_BIT, enabled);
 }
 
 bool MPU6050::getI2CBypassEnabled() {
@@ -555,7 +532,7 @@ bool MPU6050::getI2CBypassEnabled() {
 }
 
 void MPU6050::setI2CBypassEnabled(bool enabled) {
-  mpu.setByteBit(MPU6050_RA_INT_PIN_CFG, MPU6050_INTCFG_I2C_BYPASS_EN_BIT, enabled);
+  mpu.changeByteBitValue(MPU6050_RA_INT_PIN_CFG, MPU6050_INTCFG_I2C_BYPASS_EN_BIT, enabled);
 }
 
 bool MPU6050::getClockOutputEnabled() {
@@ -563,7 +540,7 @@ bool MPU6050::getClockOutputEnabled() {
 }
 
 void MPU6050::setClockOutputEnabled(bool enabled) {
-  mpu.setByteBit(MPU6050_RA_INT_PIN_CFG, MPU6050_INTCFG_CLKOUT_EN_BIT, enabled);
+  mpu.changeByteBitValue(MPU6050_RA_INT_PIN_CFG, MPU6050_INTCFG_CLKOUT_EN_BIT, enabled);
 }
 
 uint8_t MPU6050::getIntEnabled() {
@@ -579,7 +556,7 @@ bool MPU6050::getIntFreefallEnabled() {
 }
 
 void MPU6050::setIntFreefallEnabled(bool enabled) {
-  mpu.setByteBit(MPU6050_RA_INT_ENABLE, MPU6050_INTERRUPT_FF_BIT, enabled);
+  mpu.changeByteBitValue(MPU6050_RA_INT_ENABLE, MPU6050_INTERRUPT_FF_BIT, enabled);
 }
 
 bool MPU6050::getIntMotionEnabled() {
@@ -587,7 +564,7 @@ bool MPU6050::getIntMotionEnabled() {
 }
 
 void MPU6050::setIntMotionEnabled(bool enabled) {
-  mpu.setByteBit(MPU6050_RA_INT_ENABLE, MPU6050_INTERRUPT_MOT_BIT, enabled);
+  mpu.changeByteBitValue(MPU6050_RA_INT_ENABLE, MPU6050_INTERRUPT_MOT_BIT, enabled);
 }
 
 bool MPU6050::getIntZeroMotionEnabled() {
@@ -595,7 +572,7 @@ bool MPU6050::getIntZeroMotionEnabled() {
 }
 
 void MPU6050::setIntZeroMotionEnabled(bool enabled) {
-  mpu.setByteBit(MPU6050_RA_INT_ENABLE, MPU6050_INTERRUPT_ZMOT_BIT, enabled);
+  mpu.changeByteBitValue(MPU6050_RA_INT_ENABLE, MPU6050_INTERRUPT_ZMOT_BIT, enabled);
 }
 
 bool MPU6050::getIntFIFOBufferOverflowEnabled() {
@@ -603,7 +580,7 @@ bool MPU6050::getIntFIFOBufferOverflowEnabled() {
 }
 
 void MPU6050::setIntFIFOBufferOverflowEnabled(bool enabled) {
-  mpu.setByteBit(MPU6050_RA_INT_ENABLE, MPU6050_INTERRUPT_FIFO_OFLOW_BIT, enabled);
+  mpu.changeByteBitValue(MPU6050_RA_INT_ENABLE, MPU6050_INTERRUPT_FIFO_OFLOW_BIT, enabled);
 }
 
 bool MPU6050::getIntI2CMasterEnabled() {
@@ -611,7 +588,7 @@ bool MPU6050::getIntI2CMasterEnabled() {
 }
 
 void MPU6050::setIntI2CMasterEnabled(bool enabled) {
-  mpu.setByteBit(MPU6050_RA_INT_ENABLE, MPU6050_INTERRUPT_I2C_MST_INT_BIT, enabled);
+  mpu.changeByteBitValue(MPU6050_RA_INT_ENABLE, MPU6050_INTERRUPT_I2C_MST_INT_BIT, enabled);
 }
 
 bool MPU6050::getIntDataReadyEnabled() {
@@ -619,7 +596,7 @@ bool MPU6050::getIntDataReadyEnabled() {
 }
 
 void MPU6050::setIntDataReadyEnabled(bool enabled) {
-  mpu.setByteBit(MPU6050_RA_INT_ENABLE, MPU6050_INTERRUPT_DATA_RDY_BIT, enabled);
+  mpu.changeByteBitValue(MPU6050_RA_INT_ENABLE, MPU6050_INTERRUPT_DATA_RDY_BIT, enabled);
 }
 
 uint8_t MPU6050::getIntStatus() {
@@ -766,7 +743,7 @@ bool MPU6050::getExternalShadowDelayEnabled() {
 }
 
 void MPU6050::setExternalShadowDelayEnabled(bool enabled) {
-  mpu.setByteBit(MPU6050_RA_I2C_MST_DELAY_CTRL, MPU6050_DELAYCTRL_DELAY_ES_SHADOW_BIT, enabled);
+  mpu.changeByteBitValue(MPU6050_RA_I2C_MST_DELAY_CTRL, MPU6050_DELAYCTRL_DELAY_ES_SHADOW_BIT, enabled);
 }
 
 bool MPU6050::getSlaveDelayEnabled(uint8_t num) {
@@ -776,7 +753,7 @@ bool MPU6050::getSlaveDelayEnabled(uint8_t num) {
 }
 
 void MPU6050::setSlaveDelayEnabled(uint8_t num, bool enabled) {
-  mpu.setByteBit(MPU6050_RA_I2C_MST_DELAY_CTRL, num, enabled);
+  mpu.changeByteBitValue(MPU6050_RA_I2C_MST_DELAY_CTRL, num, enabled);
 }
 
 void MPU6050::resetGyroscopePath() {
@@ -822,7 +799,7 @@ bool MPU6050::getFIFOEnabled() {
 }
 
 void MPU6050::setFIFOEnabled(bool enabled) {
-  mpu.setByteBit(MPU6050_RA_USER_CTRL, MPU6050_USERCTRL_FIFO_EN_BIT, enabled);
+  mpu.changeByteBitValue(MPU6050_RA_USER_CTRL, MPU6050_USERCTRL_FIFO_EN_BIT, enabled);
 }
 
 bool MPU6050::getI2CMasterModeEnabled() {
@@ -830,11 +807,11 @@ bool MPU6050::getI2CMasterModeEnabled() {
 }
 
 void MPU6050::setI2CMasterModeEnabled(bool enabled) {
-  mpu.setByteBit(MPU6050_RA_USER_CTRL, MPU6050_USERCTRL_I2C_MST_EN_BIT, enabled);
+  mpu.changeByteBitValue(MPU6050_RA_USER_CTRL, MPU6050_USERCTRL_I2C_MST_EN_BIT, enabled);
 }
 
 void MPU6050::switchSPIEnabled(bool enabled) {
-  mpu.setByteBit(MPU6050_RA_USER_CTRL, MPU6050_USERCTRL_I2C_IF_DIS_BIT, enabled);
+  mpu.changeByteBitValue(MPU6050_RA_USER_CTRL, MPU6050_USERCTRL_I2C_IF_DIS_BIT, enabled);
 }
 
 void MPU6050::resetFIFO() {
@@ -858,7 +835,7 @@ bool MPU6050::getSleepEnabled() {
 }
 
 void MPU6050::setSleepEnabled(bool enabled) {
-  mpu.setByteBit(MPU6050_RA_PWR_MGMT_1, MPU6050_PWR1_SLEEP_BIT, enabled);
+  mpu.changeByteBitValue(MPU6050_RA_PWR_MGMT_1, MPU6050_PWR1_SLEEP_BIT, enabled);
 }
 
 bool MPU6050::getWakeCycleEnabled() {
@@ -906,7 +883,7 @@ bool MPU6050::getStandbyXAccelEnabled() {
 }
 
 void MPU6050::setStandbyXAccelEnabled(bool enabled) {
-  mpu.setByteBit(MPU6050_RA_PWR_MGMT_2, MPU6050_PWR2_STBY_XA_BIT, enabled);
+  mpu.changeByteBitValue(MPU6050_RA_PWR_MGMT_2, MPU6050_PWR2_STBY_XA_BIT, enabled);
 }
 
 bool MPU6050::getStandbyYAccelEnabled() {
@@ -914,7 +891,7 @@ bool MPU6050::getStandbyYAccelEnabled() {
 }
 
 void MPU6050::setStandbyYAccelEnabled(bool enabled) {
-  mpu.setByteBit(MPU6050_RA_PWR_MGMT_2, MPU6050_PWR2_STBY_YA_BIT, enabled);
+  mpu.changeByteBitValue(MPU6050_RA_PWR_MGMT_2, MPU6050_PWR2_STBY_YA_BIT, enabled);
 }
 
 bool MPU6050::getStandbyZAccelEnabled() {
@@ -922,7 +899,7 @@ bool MPU6050::getStandbyZAccelEnabled() {
 }
 
 void MPU6050::setStandbyZAccelEnabled(bool enabled) {
-  mpu.setByteBit(MPU6050_RA_PWR_MGMT_2, MPU6050_PWR2_STBY_ZA_BIT, enabled);
+  mpu.changeByteBitValue(MPU6050_RA_PWR_MGMT_2, MPU6050_PWR2_STBY_ZA_BIT, enabled);
 }
 
 bool MPU6050::getStandbyXGyroEnabled() {
@@ -930,7 +907,7 @@ bool MPU6050::getStandbyXGyroEnabled() {
 }
 
 void MPU6050::setStandbyXGyroEnabled(bool enabled) {
-  mpu.setByteBit(MPU6050_RA_PWR_MGMT_2, MPU6050_PWR2_STBY_XG_BIT, enabled);
+  mpu.changeByteBitValue(MPU6050_RA_PWR_MGMT_2, MPU6050_PWR2_STBY_XG_BIT, enabled);
 }
 
 bool MPU6050::getStandbyYGyroEnabled() {
@@ -938,7 +915,7 @@ bool MPU6050::getStandbyYGyroEnabled() {
 }
 
 void MPU6050::setStandbyYGyroEnabled(bool enabled) {
-  mpu.setByteBit(MPU6050_RA_PWR_MGMT_2, MPU6050_PWR2_STBY_YG_BIT, enabled);
+  mpu.changeByteBitValue(MPU6050_RA_PWR_MGMT_2, MPU6050_PWR2_STBY_YG_BIT, enabled);
 }
 
 bool MPU6050::getStandbyZGyroEnabled() {
@@ -946,7 +923,7 @@ bool MPU6050::getStandbyZGyroEnabled() {
 }
 
 void MPU6050::setStandbyZGyroEnabled(bool enabled) {
-  mpu.setByteBit(MPU6050_RA_PWR_MGMT_2, MPU6050_PWR2_STBY_ZG_BIT, enabled);
+  mpu.changeByteBitValue(MPU6050_RA_PWR_MGMT_2, MPU6050_PWR2_STBY_ZG_BIT, enabled);
 }
 
 uint16_t MPU6050::getFIFOCount() {
@@ -986,7 +963,7 @@ uint8_t MPU6050::getOTPBankValid() {
 }
 
 void MPU6050::setOTPBankValid(bool enabled) {
-  mpu.setByteBit(MPU6050_RA_XG_OFFS_TC, MPU6050_TC_OTP_BNK_VLD_BIT, enabled);
+  mpu.changeByteBitValue(MPU6050_RA_XG_OFFS_TC, MPU6050_TC_OTP_BNK_VLD_BIT, enabled);
 }
 
 int8_t MPU6050::getXGyroOffsetTC() {
@@ -1120,7 +1097,7 @@ bool MPU6050::getIntPLLReadyEnabled() {
 }
 
 void MPU6050::setIntPLLReadyEnabled(bool enabled) {
-  mpu.setByteBit(MPU6050_RA_INT_ENABLE, MPU6050_INTERRUPT_PLL_RDY_INT_BIT, enabled);
+  mpu.changeByteBitValue(MPU6050_RA_INT_ENABLE, MPU6050_INTERRUPT_PLL_RDY_INT_BIT, enabled);
 }
 
 bool MPU6050::getIntDMPEnabled() {
@@ -1128,7 +1105,7 @@ bool MPU6050::getIntDMPEnabled() {
 }
 
 void MPU6050::setIntDMPEnabled(bool enabled) {
-  mpu.setByteBit(MPU6050_RA_INT_ENABLE, MPU6050_INTERRUPT_DMP_INT_BIT, enabled);
+  mpu.changeByteBitValue(MPU6050_RA_INT_ENABLE, MPU6050_INTERRUPT_DMP_INT_BIT, enabled);
 }
 
 // DMP_INT_STATUS
@@ -1174,7 +1151,7 @@ bool MPU6050::getDMPEnabled() {
 }
 
 void MPU6050::setDMPEnabled(bool enabled) {
-  mpu.setByteBit(MPU6050_RA_USER_CTRL, MPU6050_USERCTRL_DMP_EN_BIT, enabled);
+  mpu.changeByteBitValue(MPU6050_RA_USER_CTRL, MPU6050_USERCTRL_DMP_EN_BIT, enabled);
 }
 
 void MPU6050::resetDMP() {
