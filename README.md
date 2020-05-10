@@ -101,6 +101,16 @@ Reads temperature measurements and computed the average.
 
 	The size of the cache.
 
+## 4. More info
+
+For a overview of the APIs, generate the class documentation by running the following commands:
+```sh
+$ cd doc/
+$ doxygen Doxyfile
+```
+and the documentation files will be automatically generated.
+For more detailed overview of the APIs please refer to the source code (it's fairly simple).
+
 ## Bugs & Feature Requests
 
 Please report bugs and request features using the [Issue Tracker](https://github.com/mateusmenezes95/mpu6050_driver/issues).
