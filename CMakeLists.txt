@@ -1,24 +1,22 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(mpu6050_driver)
 
-## Compile as C++11, supported in ROS Kinetic and newer
-# add_compile_options(-std=c++11)
+add_compile_options(-std=c++11)
 add_definitions(-Wall -Werror)
 
 set(CATKIN_DEPS 
-  diagnostic_msgs
+  # diagnostic_msgs
   roscpp
   sensor_msgs
+  i2c_device_ros
 )
 
 find_package(catkin REQUIRED COMPONENTS ${CATKIN_DEPS})
-find_library(wiringPi_LIB wiringPi)
 # find_package(Boost REQUIRED COMPONENTS system)
 
 catkin_package(
  INCLUDE_DIRS include
  CATKIN_DEPENDS ${CATKIN_DEPS}
- DEPENDS wiringPi
 )
 
 include_directories(
@@ -26,16 +24,14 @@ include_directories(
   ${catkin_INCLUDE_DIRS}
 )
 
-# add_library(${PROJECT_NAME}
-#   src/${PROJECT_NAME}/mpu6050_driver.cpp
-# )
+add_executable(mpu6050_node 
+  src/mpu6050.cpp
+  src/mpu6050_node.cpp
+)
 
-# add_executable(${PROJECT_NAME}_node src/mpu6050_driver_node.cpp)
-
-# target_link_libraries(${PROJECT_NAME}_node
-#   ${catkin_LIBRARIES}
-#   ${wiringPi_LIB}
-# )
+target_link_libraries(mpu6050_node
+  ${catkin_LIBRARIES}
+)
 
 # install(TARGETS ${PROJECT_NAME}_node
 #   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
