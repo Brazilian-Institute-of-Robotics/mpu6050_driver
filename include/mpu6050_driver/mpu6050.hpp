@@ -37,6 +37,7 @@ THE SOFTWARE.
 #ifndef MPU6050_DRIVER_MPU6050_HPP_
 #define MPU6050_DRIVER_MPU6050_HPP_
 
+#include <string>
 #include "i2c_device_ros/i2c_device.hpp"
 
 // supporting link:  http://forum.arduino.cc/index.php?&topic=143444.msg1079517#msg1079517
@@ -438,6 +439,12 @@ class MPU6050 {
    */
   explicit MPU6050(uint8_t address = MPU6050_DEFAULT_ADDRESS);
 
+  /**
+   * @brief Constructor without address
+   * 
+   */
+  MPU6050();
+
   /** 
    * @brief Power on and prepare for general usage.
    * 
@@ -446,8 +453,16 @@ class MPU6050 {
    * to their most sensitive settings, namely +/- 2g and +/- 250 degrees/sec, and sets
    * the clock source to use the X Gyro for reference, which is slightly better than
    * the default internal clock source.
+   * @param i2c_bus_uri The name of the I2C bus uri
    */
-  void initialize();
+  void initialize(const std::string& i2c_bus_uri);
+
+  /**
+   * @brief Set MPU Address
+   * 
+   * @param addr I2C address of device to comunicate to
+   */
+  void setAddress(uint8_t addr);
 
   /** 
    * @brief Verify the I2C connection.
@@ -3428,8 +3443,8 @@ class MPU6050 {
 #endif
 
  private:
-  uint8_t dev_addr_;
-  I2CDevice mpu;
+  uint8_t mpu_addr_;
+  I2CDevice mpu_device_;
   uint8_t buffer[14];
 #if defined(MPU6050_INCLUDE_DMP_MOTIONAPPS20) or defined(MPU6050_INCLUDE_DMP_MOTIONAPPS41)
   uint8_t *dmpPacketBuffer;

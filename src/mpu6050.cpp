@@ -38,14 +38,20 @@ THE SOFTWARE.
 
 #include "mpu6050_driver/mpu6050.hpp"
 
-MPU6050::MPU6050(uint8_t address): mpu(address) {}
+MPU6050::MPU6050(uint8_t address): mpu_addr_(address) {}
 
-void MPU6050::initialize() {
-  mpu.openI2CBus("/dev/i2c-1");
+MPU6050::MPU6050() {}
+
+void MPU6050::initialize(const std::string& i2c_bus_uri) {
+  mpu_device_.openI2CBus(i2c_bus_uri, mpu_addr_);
   setClockSource(MPU6050_CLOCK_PLL_XGYRO);
   setFullScaleGyroRange(MPU6050_GYRO_FS_250);
   setFullScaleAccelRange(MPU6050_ACCEL_FS_2);
   setSleepEnabled(false);  // thanks to Jack Elston for pointing this one out!
+}
+
+void MPU6050::setAddress(uint8_t addr) {
+  this->mpu_addr_ = addr;
 }
 
 bool MPU6050::testConnection() {
@@ -53,588 +59,591 @@ bool MPU6050::testConnection() {
 }
 
 uint8_t MPU6050::getAuxVDDIOLevel() {
-  return mpu.readByteBit(MPU6050_RA_YG_OFFS_TC, MPU6050_TC_PWR_MODE_BIT);
+  return mpu_device_.readByteBit(MPU6050_RA_YG_OFFS_TC, MPU6050_TC_PWR_MODE_BIT);
 }
 
 void MPU6050::setAuxVDDIOLevel(uint8_t level) {
-  if (level == 1) {
-    mpu.setByteBit(MPU6050_RA_YG_OFFS_TC, MPU6050_TC_PWR_MODE_BIT);
-    return;
-  }
-  mpu.clearByteBit(MPU6050_RA_YG_OFFS_TC, MPU6050_TC_PWR_MODE_BIT);
+  mpu_device_.changeByteBitValue(MPU6050_RA_YG_OFFS_TC, MPU6050_TC_PWR_MODE_BIT, level);
 }
 
 uint8_t MPU6050::getRate() {
-  return mpu.readByte(MPU6050_RA_SMPLRT_DIV);
+  return mpu_device_.readByte(MPU6050_RA_SMPLRT_DIV);
 }
 
 void MPU6050::setRate(uint8_t rate) {
-  mpu.writeByte(MPU6050_RA_SMPLRT_DIV, rate);
+  mpu_device_.writeByte(MPU6050_RA_SMPLRT_DIV, rate);
 }
 
 uint8_t MPU6050::getExternalFrameSync() {
-  return mpu.readByteBits(MPU6050_RA_CONFIG, MPU6050_CFG_EXT_SYNC_SET_BIT, MPU6050_CFG_EXT_SYNC_SET_LENGTH);
+  return mpu_device_.readByteBits(MPU6050_RA_CONFIG, MPU6050_CFG_EXT_SYNC_SET_BIT, MPU6050_CFG_EXT_SYNC_SET_LENGTH);
 }
 
 void MPU6050::setExternalFrameSync(uint8_t sync) {
-  mpu.setByteBits(MPU6050_RA_CONFIG, MPU6050_CFG_EXT_SYNC_SET_BIT, MPU6050_CFG_EXT_SYNC_SET_LENGTH, sync);
+  mpu_device_.setByteBits(MPU6050_RA_CONFIG, MPU6050_CFG_EXT_SYNC_SET_BIT, MPU6050_CFG_EXT_SYNC_SET_LENGTH, sync);
 }
 
 uint8_t MPU6050::getDLPFMode() {
-  return mpu.readByteBits(MPU6050_RA_CONFIG, MPU6050_CFG_DLPF_CFG_BIT, MPU6050_CFG_DLPF_CFG_LENGTH);
+  return mpu_device_.readByteBits(MPU6050_RA_CONFIG, MPU6050_CFG_DLPF_CFG_BIT, MPU6050_CFG_DLPF_CFG_LENGTH);
 }
 
 void MPU6050::setDLPFMode(uint8_t mode) {
-  mpu.setByteBits(MPU6050_RA_CONFIG, MPU6050_CFG_DLPF_CFG_BIT, MPU6050_CFG_DLPF_CFG_LENGTH, mode);
+  mpu_device_.setByteBits(MPU6050_RA_CONFIG, MPU6050_CFG_DLPF_CFG_BIT, MPU6050_CFG_DLPF_CFG_LENGTH, mode);
 }
 
 uint8_t MPU6050::getFullScaleGyroRange() {
-  return mpu.readByteBits(MPU6050_RA_GYRO_CONFIG, MPU6050_GCONFIG_FS_SEL_BIT, MPU6050_GCONFIG_FS_SEL_LENGTH);
+  return mpu_device_.readByteBits(MPU6050_RA_GYRO_CONFIG, MPU6050_GCONFIG_FS_SEL_BIT, MPU6050_GCONFIG_FS_SEL_LENGTH);
 }
 
 void MPU6050::setFullScaleGyroRange(uint8_t range) {
-  mpu.setByteBits(MPU6050_RA_GYRO_CONFIG, MPU6050_GCONFIG_FS_SEL_BIT, MPU6050_GCONFIG_FS_SEL_LENGTH, range);
+  mpu_device_.setByteBits(MPU6050_RA_GYRO_CONFIG, MPU6050_GCONFIG_FS_SEL_BIT, MPU6050_GCONFIG_FS_SEL_LENGTH, range);
 }
 
 uint8_t MPU6050::getAccelXSelfTestFactoryTrim() {
   uint8_t buffer[2];
-  buffer[0] = mpu.readByte(MPU6050_RA_SELF_TEST_X);
-  buffer[1] = mpu.readByte(MPU6050_RA_SELF_TEST_A);
+  buffer[0] = mpu_device_.readByte(MPU6050_RA_SELF_TEST_X);
+  buffer[1] = mpu_device_.readByte(MPU6050_RA_SELF_TEST_A);
   return (buffer[0] >> 3) | ((buffer[1] >> 4) & 0x03);
 }
 
 uint8_t MPU6050::getAccelYSelfTestFactoryTrim() {
   uint8_t buffer[2];
-  buffer[0] = mpu.readByte(MPU6050_RA_SELF_TEST_Y);
-  buffer[1] = mpu.readByte(MPU6050_RA_SELF_TEST_A);
+  buffer[0] = mpu_device_.readByte(MPU6050_RA_SELF_TEST_Y);
+  buffer[1] = mpu_device_.readByte(MPU6050_RA_SELF_TEST_A);
   return (buffer[0] >> 3) | ((buffer[1] >> 2) & 0x03);
 }
 
 uint8_t MPU6050::getAccelZSelfTestFactoryTrim() {
   uint8_t buffer[2];
-  mpu.readBytes(MPU6050_RA_SELF_TEST_Z, sizeof(buffer), buffer);
+  mpu_device_.readBytes(MPU6050_RA_SELF_TEST_Z, sizeof(buffer), buffer);
   return (buffer[0] >> 3) | (buffer[1] & 0x03);
 }
 
 uint8_t MPU6050::getGyroXSelfTestFactoryTrim() {
-  return mpu.readByte(MPU6050_RA_SELF_TEST_X) & 0x1F;
+  return mpu_device_.readByte(MPU6050_RA_SELF_TEST_X) & 0x1F;
 }
 
 uint8_t MPU6050::getGyroYSelfTestFactoryTrim() {
-  return mpu.readByte(MPU6050_RA_SELF_TEST_Y) & 0x1F;
+  return mpu_device_.readByte(MPU6050_RA_SELF_TEST_Y) & 0x1F;
 }
 
 uint8_t MPU6050::getGyroZSelfTestFactoryTrim() {
-  return mpu.readByte(MPU6050_RA_SELF_TEST_Z) & 0x1F;
+  return mpu_device_.readByte(MPU6050_RA_SELF_TEST_Z) & 0x1F;
 }
 
 bool MPU6050::getAccelXSelfTest() {
-  return mpu.readByteBit(MPU6050_RA_ACCEL_CONFIG, MPU6050_ACONFIG_XA_ST_BIT);
+  return mpu_device_.readByteBit(MPU6050_RA_ACCEL_CONFIG, MPU6050_ACONFIG_XA_ST_BIT);
 }
 
 void MPU6050::setAccelXSelfTest(bool enabled) {
-  mpu.changeByteBitValue(MPU6050_RA_ACCEL_CONFIG, MPU6050_ACONFIG_XA_ST_BIT, enabled);
+  mpu_device_.changeByteBitValue(MPU6050_RA_ACCEL_CONFIG, MPU6050_ACONFIG_XA_ST_BIT, enabled);
 }
 
 bool MPU6050::getAccelYSelfTest() {
-  return mpu.readByteBit(MPU6050_RA_ACCEL_CONFIG, MPU6050_ACONFIG_YA_ST_BIT);
+  return mpu_device_.readByteBit(MPU6050_RA_ACCEL_CONFIG, MPU6050_ACONFIG_YA_ST_BIT);
 }
 
 void MPU6050::setAccelYSelfTest(bool enabled) {
-  mpu.changeByteBitValue(MPU6050_RA_ACCEL_CONFIG, MPU6050_ACONFIG_YA_ST_BIT, enabled);
+  mpu_device_.changeByteBitValue(MPU6050_RA_ACCEL_CONFIG, MPU6050_ACONFIG_YA_ST_BIT, enabled);
 }
 
 bool MPU6050::getAccelZSelfTest() {
-  return mpu.readByteBit(MPU6050_RA_ACCEL_CONFIG, MPU6050_ACONFIG_ZA_ST_BIT);
+  return mpu_device_.readByteBit(MPU6050_RA_ACCEL_CONFIG, MPU6050_ACONFIG_ZA_ST_BIT);
 }
 
 void MPU6050::setAccelZSelfTest(bool enabled) {
-  mpu.changeByteBitValue(MPU6050_RA_ACCEL_CONFIG, MPU6050_ACONFIG_ZA_ST_BIT, enabled);
+  mpu_device_.changeByteBitValue(MPU6050_RA_ACCEL_CONFIG, MPU6050_ACONFIG_ZA_ST_BIT, enabled);
 }
 
 uint8_t MPU6050::getFullScaleAccelRange() {
-  return mpu.readByteBits(MPU6050_RA_ACCEL_CONFIG, MPU6050_ACONFIG_AFS_SEL_BIT, MPU6050_ACONFIG_AFS_SEL_LENGTH);
+  return mpu_device_.readByteBits(MPU6050_RA_ACCEL_CONFIG, MPU6050_ACONFIG_AFS_SEL_BIT, MPU6050_ACONFIG_AFS_SEL_LENGTH);
 }
 
 void MPU6050::setFullScaleAccelRange(uint8_t range) {
-  mpu.setByteBits(MPU6050_RA_ACCEL_CONFIG, MPU6050_ACONFIG_AFS_SEL_BIT, MPU6050_ACONFIG_AFS_SEL_LENGTH, range);
+  mpu_device_.setByteBits(MPU6050_RA_ACCEL_CONFIG, MPU6050_ACONFIG_AFS_SEL_BIT, MPU6050_ACONFIG_AFS_SEL_LENGTH, range);
 }
 
 uint8_t MPU6050::getDHPFMode() {
-  return mpu.readByteBits(MPU6050_RA_ACCEL_CONFIG, MPU6050_ACONFIG_ACCEL_HPF_BIT, MPU6050_ACONFIG_ACCEL_HPF_LENGTH);
+  return mpu_device_.readByteBits(MPU6050_RA_ACCEL_CONFIG, MPU6050_ACONFIG_ACCEL_HPF_BIT,
+                                  MPU6050_ACONFIG_ACCEL_HPF_LENGTH);
 }
 
 void MPU6050::setDHPFMode(uint8_t mode) {
-  mpu.setByteBits(MPU6050_RA_ACCEL_CONFIG, MPU6050_ACONFIG_ACCEL_HPF_BIT,
+  mpu_device_.setByteBits(MPU6050_RA_ACCEL_CONFIG, MPU6050_ACONFIG_ACCEL_HPF_BIT,
                   MPU6050_ACONFIG_ACCEL_HPF_LENGTH, mode);
 }
 
 uint8_t MPU6050::getFreefallDetectionThreshold() {
-  return mpu.readByte(MPU6050_RA_FF_THR);
+  return mpu_device_.readByte(MPU6050_RA_FF_THR);
 }
 
 void MPU6050::setFreefallDetectionThreshold(uint8_t threshold) {
-  mpu.writeByte(MPU6050_RA_FF_THR, threshold);
+  mpu_device_.writeByte(MPU6050_RA_FF_THR, threshold);
 }
 
 uint8_t MPU6050::getFreefallDetectionDuration() {
-  return mpu.readByte(MPU6050_RA_FF_DUR);
+  return mpu_device_.readByte(MPU6050_RA_FF_DUR);
 }
 
 void MPU6050::setFreefallDetectionDuration(uint8_t duration) {
-  mpu.writeByte(MPU6050_RA_FF_DUR, duration);
+  mpu_device_.writeByte(MPU6050_RA_FF_DUR, duration);
 }
 
 uint8_t MPU6050::getMotionDetectionThreshold() {
-  return mpu.readByte(MPU6050_RA_MOT_THR);
+  return mpu_device_.readByte(MPU6050_RA_MOT_THR);
 }
 
 void MPU6050::setMotionDetectionThreshold(uint8_t threshold) {
-  mpu.writeByte(MPU6050_RA_MOT_THR, threshold);
+  mpu_device_.writeByte(MPU6050_RA_MOT_THR, threshold);
 }
 
 uint8_t MPU6050::getMotionDetectionDuration() {
-  return mpu.readByte(MPU6050_RA_MOT_DUR);
+  return mpu_device_.readByte(MPU6050_RA_MOT_DUR);
 }
 
 void MPU6050::setMotionDetectionDuration(uint8_t duration) {
-  mpu.writeByte(MPU6050_RA_MOT_DUR, duration);
+  mpu_device_.writeByte(MPU6050_RA_MOT_DUR, duration);
 }
 
 uint8_t MPU6050::getZeroMotionDetectionThreshold() {
-  return mpu.readByte(MPU6050_RA_ZRMOT_THR);
+  return mpu_device_.readByte(MPU6050_RA_ZRMOT_THR);
 }
 
 void MPU6050::setZeroMotionDetectionThreshold(uint8_t threshold) {
-  mpu.writeByte(MPU6050_RA_ZRMOT_THR, threshold);
+  mpu_device_.writeByte(MPU6050_RA_ZRMOT_THR, threshold);
 }
 
 uint8_t MPU6050::getZeroMotionDetectionDuration() {
-  return mpu.readByte(MPU6050_RA_ZRMOT_DUR);
+  return mpu_device_.readByte(MPU6050_RA_ZRMOT_DUR);
 }
 
 void MPU6050::setZeroMotionDetectionDuration(uint8_t duration) {
-  mpu.writeByte(MPU6050_RA_ZRMOT_DUR, duration);
+  mpu_device_.writeByte(MPU6050_RA_ZRMOT_DUR, duration);
 }
 
 bool MPU6050::getTempFIFOEnabled() {
-  return mpu.readByteBit(MPU6050_RA_FIFO_EN, MPU6050_TEMP_FIFO_EN_BIT);
+  return mpu_device_.readByteBit(MPU6050_RA_FIFO_EN, MPU6050_TEMP_FIFO_EN_BIT);
 }
 
 void MPU6050::setTempFIFOEnabled(bool enabled) {
-  mpu.changeByteBitValue(MPU6050_RA_FIFO_EN, MPU6050_TEMP_FIFO_EN_BIT, enabled);
+  mpu_device_.changeByteBitValue(MPU6050_RA_FIFO_EN, MPU6050_TEMP_FIFO_EN_BIT, enabled);
 }
 
 bool MPU6050::getXGyroFIFOEnabled() {
-  return mpu.readByteBit(MPU6050_RA_FIFO_EN, MPU6050_XG_FIFO_EN_BIT);
+  return mpu_device_.readByteBit(MPU6050_RA_FIFO_EN, MPU6050_XG_FIFO_EN_BIT);
 }
 
 void MPU6050::setXGyroFIFOEnabled(bool enabled) {
-  mpu.changeByteBitValue(MPU6050_RA_FIFO_EN, MPU6050_XG_FIFO_EN_BIT, enabled);
+  mpu_device_.changeByteBitValue(MPU6050_RA_FIFO_EN, MPU6050_XG_FIFO_EN_BIT, enabled);
 }
 
 bool MPU6050::getYGyroFIFOEnabled() {
-  return mpu.readByteBit(MPU6050_RA_FIFO_EN, MPU6050_YG_FIFO_EN_BIT);
+  return mpu_device_.readByteBit(MPU6050_RA_FIFO_EN, MPU6050_YG_FIFO_EN_BIT);
 }
 
 void MPU6050::setYGyroFIFOEnabled(bool enabled) {
-  mpu.setByteBit(MPU6050_RA_FIFO_EN, MPU6050_YG_FIFO_EN_BIT);
+  mpu_device_.setByteBit(MPU6050_RA_FIFO_EN, MPU6050_YG_FIFO_EN_BIT);
 }
 
 bool MPU6050::getZGyroFIFOEnabled() {
-  return mpu.readByteBit(MPU6050_RA_FIFO_EN, MPU6050_ZG_FIFO_EN_BIT);
+  return mpu_device_.readByteBit(MPU6050_RA_FIFO_EN, MPU6050_ZG_FIFO_EN_BIT);
 }
 
 void MPU6050::setZGyroFIFOEnabled(bool enabled) {
-  mpu.setByteBit(MPU6050_RA_FIFO_EN, MPU6050_ZG_FIFO_EN_BIT);
+  mpu_device_.setByteBit(MPU6050_RA_FIFO_EN, MPU6050_ZG_FIFO_EN_BIT);
 }
 
 bool MPU6050::getAccelFIFOEnabled() {
-  return mpu.readByteBit(MPU6050_RA_FIFO_EN, MPU6050_ACCEL_FIFO_EN_BIT);
+  return mpu_device_.readByteBit(MPU6050_RA_FIFO_EN, MPU6050_ACCEL_FIFO_EN_BIT);
 }
 
 void MPU6050::setAccelFIFOEnabled(bool enabled) {
-  mpu.setByteBit(MPU6050_RA_FIFO_EN, MPU6050_ACCEL_FIFO_EN_BIT);
+  mpu_device_.setByteBit(MPU6050_RA_FIFO_EN, MPU6050_ACCEL_FIFO_EN_BIT);
 }
 
 bool MPU6050::getSlave2FIFOEnabled() {
-  return mpu.readByteBit(MPU6050_RA_FIFO_EN, MPU6050_SLV2_FIFO_EN_BIT);
+  return mpu_device_.readByteBit(MPU6050_RA_FIFO_EN, MPU6050_SLV2_FIFO_EN_BIT);
 }
 
 void MPU6050::setSlave2FIFOEnabled(bool enabled) {
-  mpu.setByteBit(MPU6050_RA_FIFO_EN, MPU6050_SLV2_FIFO_EN_BIT);
+  mpu_device_.setByteBit(MPU6050_RA_FIFO_EN, MPU6050_SLV2_FIFO_EN_BIT);
 }
 
 bool MPU6050::getSlave1FIFOEnabled() {
-  return mpu.readByteBit(MPU6050_RA_FIFO_EN, MPU6050_SLV1_FIFO_EN_BIT);
+  return mpu_device_.readByteBit(MPU6050_RA_FIFO_EN, MPU6050_SLV1_FIFO_EN_BIT);
 }
 
 void MPU6050::setSlave1FIFOEnabled(bool enabled) {
-  mpu.setByteBit(MPU6050_RA_FIFO_EN, MPU6050_SLV1_FIFO_EN_BIT);
+  mpu_device_.setByteBit(MPU6050_RA_FIFO_EN, MPU6050_SLV1_FIFO_EN_BIT);
 }
 
 bool MPU6050::getSlave0FIFOEnabled() {
-  return mpu.readByteBit(MPU6050_RA_FIFO_EN, MPU6050_SLV0_FIFO_EN_BIT);
+  return mpu_device_.readByteBit(MPU6050_RA_FIFO_EN, MPU6050_SLV0_FIFO_EN_BIT);
 }
 
 void MPU6050::setSlave0FIFOEnabled(bool enabled) {
-  mpu.setByteBit(MPU6050_RA_FIFO_EN, MPU6050_SLV0_FIFO_EN_BIT);
+  mpu_device_.setByteBit(MPU6050_RA_FIFO_EN, MPU6050_SLV0_FIFO_EN_BIT);
 }
 
 bool MPU6050::getMultiMasterEnabled() {
-  return mpu.readByteBit(MPU6050_RA_I2C_MST_CTRL, MPU6050_MULT_MST_EN_BIT);
+  return mpu_device_.readByteBit(MPU6050_RA_I2C_MST_CTRL, MPU6050_MULT_MST_EN_BIT);
 }
 
 void MPU6050::setMultiMasterEnabled(bool enabled) {
-  mpu.setByteBit(MPU6050_RA_I2C_MST_CTRL, MPU6050_MULT_MST_EN_BIT);
+  mpu_device_.setByteBit(MPU6050_RA_I2C_MST_CTRL, MPU6050_MULT_MST_EN_BIT);
 }
 
 bool MPU6050::getWaitForExternalSensorEnabled() {
-  return mpu.readByteBit(MPU6050_RA_I2C_MST_CTRL, MPU6050_WAIT_FOR_ES_BIT);
+  return mpu_device_.readByteBit(MPU6050_RA_I2C_MST_CTRL, MPU6050_WAIT_FOR_ES_BIT);
 }
 
 void MPU6050::setWaitForExternalSensorEnabled(bool enabled) {
-  mpu.setByteBit(MPU6050_RA_I2C_MST_CTRL, MPU6050_WAIT_FOR_ES_BIT);
+  mpu_device_.setByteBit(MPU6050_RA_I2C_MST_CTRL, MPU6050_WAIT_FOR_ES_BIT);
 }
 
 bool MPU6050::getSlave3FIFOEnabled() {
-  return mpu.readByteBit(MPU6050_RA_I2C_MST_CTRL, MPU6050_SLV_3_FIFO_EN_BIT);
+  return mpu_device_.readByteBit(MPU6050_RA_I2C_MST_CTRL, MPU6050_SLV_3_FIFO_EN_BIT);
 }
 
 void MPU6050::setSlave3FIFOEnabled(bool enabled) {
-  mpu.setByteBit(MPU6050_RA_I2C_MST_CTRL, MPU6050_SLV_3_FIFO_EN_BIT);
+  mpu_device_.setByteBit(MPU6050_RA_I2C_MST_CTRL, MPU6050_SLV_3_FIFO_EN_BIT);
 }
 
 bool MPU6050::getSlaveReadWriteTransitionEnabled() {
-  return mpu.readByteBit(MPU6050_RA_I2C_MST_CTRL, MPU6050_I2C_MST_P_NSR_BIT);
+  return mpu_device_.readByteBit(MPU6050_RA_I2C_MST_CTRL, MPU6050_I2C_MST_P_NSR_BIT);
 }
 
 void MPU6050::setSlaveReadWriteTransitionEnabled(bool enabled) {
-  mpu.setByteBit(MPU6050_RA_I2C_MST_CTRL, MPU6050_I2C_MST_P_NSR_BIT);
+  mpu_device_.setByteBit(MPU6050_RA_I2C_MST_CTRL, MPU6050_I2C_MST_P_NSR_BIT);
 }
 
 uint8_t MPU6050::getMasterClockSpeed() {
-  return mpu.readByteBits(MPU6050_RA_I2C_MST_CTRL, MPU6050_I2C_MST_CLK_BIT, MPU6050_I2C_MST_CLK_LENGTH);
+  return mpu_device_.readByteBits(MPU6050_RA_I2C_MST_CTRL, MPU6050_I2C_MST_CLK_BIT, MPU6050_I2C_MST_CLK_LENGTH);
 }
 
 void MPU6050::setMasterClockSpeed(uint8_t speed) {
-  mpu.setByteBits(MPU6050_RA_I2C_MST_CTRL, MPU6050_I2C_MST_CLK_BIT, MPU6050_I2C_MST_CLK_LENGTH, speed);
+  mpu_device_.setByteBits(MPU6050_RA_I2C_MST_CTRL, MPU6050_I2C_MST_CLK_BIT, MPU6050_I2C_MST_CLK_LENGTH, speed);
 }
 
 uint8_t MPU6050::getSlaveAddress(uint8_t num) {
   if (num > 3) return 0;
-  return mpu.readByte(MPU6050_RA_I2C_SLV0_ADDR + (num * 3));
+  return mpu_device_.readByte(MPU6050_RA_I2C_SLV0_ADDR + (num * 3));
 }
 
 void MPU6050::setSlaveAddress(uint8_t num, uint8_t address) {
   if (num > 3) return;
-  mpu.writeByte(MPU6050_RA_I2C_SLV0_ADDR + (num * 3), address);
+  mpu_device_.writeByte(MPU6050_RA_I2C_SLV0_ADDR + (num * 3), address);
 }
 
 uint8_t MPU6050::getSlaveRegister(uint8_t num) {
   if (num > 3) return 0;
-  return mpu.readByte(MPU6050_RA_I2C_SLV0_REG + (num * 3));
+  return mpu_device_.readByte(MPU6050_RA_I2C_SLV0_REG + (num * 3));
 }
 
 void MPU6050::setSlaveRegister(uint8_t num, uint8_t reg) {
   if (num > 3) return;
-  mpu.writeByte(MPU6050_RA_I2C_SLV0_REG + (num * 3), reg);
+  mpu_device_.writeByte(MPU6050_RA_I2C_SLV0_REG + (num * 3), reg);
 }
 
 bool MPU6050::getSlaveEnabled(uint8_t num) {
   if (num > 3) return 0;
-  return mpu.readByteBit(MPU6050_RA_I2C_SLV0_CTRL + (num * 3), MPU6050_I2C_SLV_EN_BIT);
+  return mpu_device_.readByteBit(MPU6050_RA_I2C_SLV0_CTRL + (num * 3), MPU6050_I2C_SLV_EN_BIT);
 }
 
 void MPU6050::setSlaveEnabled(uint8_t num, bool enabled) {
   if (num > 3) return;
-  mpu.changeByteBitValue(MPU6050_RA_I2C_SLV0_CTRL + (num * 3), MPU6050_I2C_SLV_EN_BIT, enabled);
+  mpu_device_.changeByteBitValue(MPU6050_RA_I2C_SLV0_CTRL + (num * 3), MPU6050_I2C_SLV_EN_BIT, enabled);
 }
 
 bool MPU6050::getSlaveWordByteSwap(uint8_t num) {
   if (num > 3) return 0;
-  return mpu.readByteBit(MPU6050_RA_I2C_SLV0_CTRL + (num * 3), MPU6050_I2C_SLV_BYTE_SW_BIT);
+  return mpu_device_.readByteBit(MPU6050_RA_I2C_SLV0_CTRL + (num * 3), MPU6050_I2C_SLV_BYTE_SW_BIT);
 }
 
 void MPU6050::setSlaveWordByteSwap(uint8_t num, bool enabled) {
   if (num > 3) return;
-  mpu.changeByteBitValue(MPU6050_RA_I2C_SLV0_CTRL + (num * 3), MPU6050_I2C_SLV_BYTE_SW_BIT, enabled);
+  mpu_device_.changeByteBitValue(MPU6050_RA_I2C_SLV0_CTRL + (num * 3), MPU6050_I2C_SLV_BYTE_SW_BIT, enabled);
 }
 
 bool MPU6050::getSlaveWriteMode(uint8_t num) {
   if (num > 3) return 0;
-  return mpu.readByteBit(MPU6050_RA_I2C_SLV0_CTRL + (num * 3), MPU6050_I2C_SLV_REG_DIS_BIT);
+  return mpu_device_.readByteBit(MPU6050_RA_I2C_SLV0_CTRL + (num * 3), MPU6050_I2C_SLV_REG_DIS_BIT);
 }
 
 void MPU6050::setSlaveWriteMode(uint8_t num, bool mode) {
   if (num > 3) return;
-  mpu.changeByteBitValue(MPU6050_RA_I2C_SLV0_CTRL + (num * 3), MPU6050_I2C_SLV_REG_DIS_BIT, mode);
+  mpu_device_.changeByteBitValue(MPU6050_RA_I2C_SLV0_CTRL + (num * 3), MPU6050_I2C_SLV_REG_DIS_BIT, mode);
 }
 
 bool MPU6050::getSlaveWordGroupOffset(uint8_t num) {
   if (num > 3) return 0;
-  return mpu.readByteBit(MPU6050_RA_I2C_SLV0_CTRL + (num * 3), MPU6050_I2C_SLV_GRP_BIT);
+  return mpu_device_.readByteBit(MPU6050_RA_I2C_SLV0_CTRL + (num * 3), MPU6050_I2C_SLV_GRP_BIT);
 }
 
 void MPU6050::setSlaveWordGroupOffset(uint8_t num, bool enabled) {
   if (num > 3) return;
-  mpu.changeByteBitValue(MPU6050_RA_I2C_SLV0_CTRL + (num * 3), MPU6050_I2C_SLV_GRP_BIT, enabled);
+  mpu_device_.changeByteBitValue(MPU6050_RA_I2C_SLV0_CTRL + (num * 3), MPU6050_I2C_SLV_GRP_BIT, enabled);
 }
 
 uint8_t MPU6050::getSlaveDataLength(uint8_t num) {
   if (num > 3) return 0;
-  return mpu.readByteBits(MPU6050_RA_I2C_SLV0_CTRL + (num * 3), MPU6050_I2C_SLV_LEN_BIT, MPU6050_I2C_SLV_LEN_LENGTH);
+  return mpu_device_.readByteBits(MPU6050_RA_I2C_SLV0_CTRL + (num * 3), MPU6050_I2C_SLV_LEN_BIT,
+                                  MPU6050_I2C_SLV_LEN_LENGTH);
 }
 
 void MPU6050::setSlaveDataLength(uint8_t num, uint8_t length) {
   if (num > 3) return;
-  mpu.setByteBits(MPU6050_RA_I2C_SLV0_CTRL + (num * 3), MPU6050_I2C_SLV_LEN_BIT, MPU6050_I2C_SLV_LEN_LENGTH, length);
+  mpu_device_.setByteBits(MPU6050_RA_I2C_SLV0_CTRL + (num * 3), MPU6050_I2C_SLV_LEN_BIT,
+                          MPU6050_I2C_SLV_LEN_LENGTH, length);
 }
 
 uint8_t MPU6050::getSlave4Address() {
-  return mpu.readByte(MPU6050_RA_I2C_SLV4_ADDR);
+  return mpu_device_.readByte(MPU6050_RA_I2C_SLV4_ADDR);
 }
 
 void MPU6050::setSlave4Address(uint8_t address) {
-  mpu.writeByte(MPU6050_RA_I2C_SLV4_ADDR, address);
+  mpu_device_.writeByte(MPU6050_RA_I2C_SLV4_ADDR, address);
 }
 
 uint8_t MPU6050::getSlave4Register() {
-  return mpu.readByte(MPU6050_RA_I2C_SLV4_REG);
+  return mpu_device_.readByte(MPU6050_RA_I2C_SLV4_REG);
 }
 
 void MPU6050::setSlave4Register(uint8_t reg) {
-  mpu.writeByte(MPU6050_RA_I2C_SLV4_REG, reg);
+  mpu_device_.writeByte(MPU6050_RA_I2C_SLV4_REG, reg);
 }
 
 void MPU6050::setSlave4OutputByte(uint8_t data) {
-  mpu.writeByte(MPU6050_RA_I2C_SLV4_DO, data);
+  mpu_device_.writeByte(MPU6050_RA_I2C_SLV4_DO, data);
 }
 
 bool MPU6050::getSlave4Enabled() {
-  return mpu.readByteBit(MPU6050_RA_I2C_SLV4_CTRL, MPU6050_I2C_SLV4_EN_BIT);
+  return mpu_device_.readByteBit(MPU6050_RA_I2C_SLV4_CTRL, MPU6050_I2C_SLV4_EN_BIT);
 }
 
 void MPU6050::setSlave4Enabled(bool enabled) {
-  mpu.changeByteBitValue(MPU6050_RA_I2C_SLV4_CTRL, MPU6050_I2C_SLV4_EN_BIT, enabled);
+  mpu_device_.changeByteBitValue(MPU6050_RA_I2C_SLV4_CTRL, MPU6050_I2C_SLV4_EN_BIT, enabled);
 }
 
 bool MPU6050::getSlave4InterruptEnabled() {
-  return mpu.readByteBit(MPU6050_RA_I2C_SLV4_CTRL, MPU6050_I2C_SLV4_INT_EN_BIT);
+  return mpu_device_.readByteBit(MPU6050_RA_I2C_SLV4_CTRL, MPU6050_I2C_SLV4_INT_EN_BIT);
 }
 
 void MPU6050::setSlave4InterruptEnabled(bool enabled) {
-  mpu.changeByteBitValue(MPU6050_RA_I2C_SLV4_CTRL, MPU6050_I2C_SLV4_INT_EN_BIT, enabled);
+  mpu_device_.changeByteBitValue(MPU6050_RA_I2C_SLV4_CTRL, MPU6050_I2C_SLV4_INT_EN_BIT, enabled);
 }
 
 bool MPU6050::getSlave4WriteMode() {
-  return mpu.readByteBit(MPU6050_RA_I2C_SLV4_CTRL, MPU6050_I2C_SLV4_REG_DIS_BIT);
+  return mpu_device_.readByteBit(MPU6050_RA_I2C_SLV4_CTRL, MPU6050_I2C_SLV4_REG_DIS_BIT);
 }
 
 void MPU6050::setSlave4WriteMode(bool mode) {
-  mpu.changeByteBitValue(MPU6050_RA_I2C_SLV4_CTRL, MPU6050_I2C_SLV4_REG_DIS_BIT, mode);
+  mpu_device_.changeByteBitValue(MPU6050_RA_I2C_SLV4_CTRL, MPU6050_I2C_SLV4_REG_DIS_BIT, mode);
 }
 
 uint8_t MPU6050::getSlave4MasterDelay() {
-  return mpu.readByteBits(MPU6050_RA_I2C_SLV4_CTRL, MPU6050_I2C_SLV4_MST_DLY_BIT, MPU6050_I2C_SLV4_MST_DLY_LENGTH);
+  return mpu_device_.readByteBits(MPU6050_RA_I2C_SLV4_CTRL, MPU6050_I2C_SLV4_MST_DLY_BIT,
+                                  MPU6050_I2C_SLV4_MST_DLY_LENGTH);
 }
 
 void MPU6050::setSlave4MasterDelay(uint8_t delay) {
-  mpu.setByteBits(MPU6050_RA_I2C_SLV4_CTRL, MPU6050_I2C_SLV4_MST_DLY_BIT, MPU6050_I2C_SLV4_MST_DLY_LENGTH, delay);
+  mpu_device_.setByteBits(MPU6050_RA_I2C_SLV4_CTRL, MPU6050_I2C_SLV4_MST_DLY_BIT,
+                          MPU6050_I2C_SLV4_MST_DLY_LENGTH, delay);
 }
 
 uint8_t MPU6050::getSlate4InputByte() {
-  return mpu.readByte(MPU6050_RA_I2C_SLV4_DI);
+  return mpu_device_.readByte(MPU6050_RA_I2C_SLV4_DI);
 }
 
 bool MPU6050::getPassthroughStatus() {
-  return mpu.readByteBit(MPU6050_RA_I2C_MST_STATUS, MPU6050_MST_PASS_THROUGH_BIT);
+  return mpu_device_.readByteBit(MPU6050_RA_I2C_MST_STATUS, MPU6050_MST_PASS_THROUGH_BIT);
 }
 
 bool MPU6050::getSlave4IsDone() {
-  return mpu.readByteBit(MPU6050_RA_I2C_MST_STATUS, MPU6050_MST_I2C_SLV4_DONE_BIT);
+  return mpu_device_.readByteBit(MPU6050_RA_I2C_MST_STATUS, MPU6050_MST_I2C_SLV4_DONE_BIT);
 }
 
 bool MPU6050::getLostArbitration() {
-  return mpu.readByteBit(MPU6050_RA_I2C_MST_STATUS, MPU6050_MST_I2C_LOST_ARB_BIT);
+  return mpu_device_.readByteBit(MPU6050_RA_I2C_MST_STATUS, MPU6050_MST_I2C_LOST_ARB_BIT);
 }
 
 bool MPU6050::getSlave4Nack() {
-  return mpu.readByteBit(MPU6050_RA_I2C_MST_STATUS, MPU6050_MST_I2C_SLV4_NACK_BIT);
+  return mpu_device_.readByteBit(MPU6050_RA_I2C_MST_STATUS, MPU6050_MST_I2C_SLV4_NACK_BIT);
 }
 
 bool MPU6050::getSlave3Nack() {
-  return mpu.readByteBit(MPU6050_RA_I2C_MST_STATUS, MPU6050_MST_I2C_SLV3_NACK_BIT);
+  return mpu_device_.readByteBit(MPU6050_RA_I2C_MST_STATUS, MPU6050_MST_I2C_SLV3_NACK_BIT);
 }
 
 bool MPU6050::getSlave2Nack() {
-  return mpu.readByteBit(MPU6050_RA_I2C_MST_STATUS, MPU6050_MST_I2C_SLV2_NACK_BIT);
+  return mpu_device_.readByteBit(MPU6050_RA_I2C_MST_STATUS, MPU6050_MST_I2C_SLV2_NACK_BIT);
 }
 
 bool MPU6050::getSlave1Nack() {
-  return mpu.readByteBit(MPU6050_RA_I2C_MST_STATUS, MPU6050_MST_I2C_SLV1_NACK_BIT);
+  return mpu_device_.readByteBit(MPU6050_RA_I2C_MST_STATUS, MPU6050_MST_I2C_SLV1_NACK_BIT);
 }
 
 bool MPU6050::getSlave0Nack() {
-  return mpu.readByteBit(MPU6050_RA_I2C_MST_STATUS, MPU6050_MST_I2C_SLV0_NACK_BIT);
+  return mpu_device_.readByteBit(MPU6050_RA_I2C_MST_STATUS, MPU6050_MST_I2C_SLV0_NACK_BIT);
 }
 
 bool MPU6050::getInterruptMode() {
-  return mpu.readByteBit(MPU6050_RA_INT_PIN_CFG, MPU6050_INTCFG_INT_LEVEL_BIT);
+  return mpu_device_.readByteBit(MPU6050_RA_INT_PIN_CFG, MPU6050_INTCFG_INT_LEVEL_BIT);
 }
 
 void MPU6050::setInterruptMode(bool mode) {
-  mpu.changeByteBitValue(MPU6050_RA_INT_PIN_CFG, MPU6050_INTCFG_INT_LEVEL_BIT, mode);
+  mpu_device_.changeByteBitValue(MPU6050_RA_INT_PIN_CFG, MPU6050_INTCFG_INT_LEVEL_BIT, mode);
 }
 
 bool MPU6050::getInterruptDrive() {
-  return mpu.readByteBit(MPU6050_RA_INT_PIN_CFG, MPU6050_INTCFG_INT_OPEN_BIT);
+  return mpu_device_.readByteBit(MPU6050_RA_INT_PIN_CFG, MPU6050_INTCFG_INT_OPEN_BIT);
 }
 
 void MPU6050::setInterruptDrive(bool drive) {
-  mpu.changeByteBitValue(MPU6050_RA_INT_PIN_CFG, MPU6050_INTCFG_INT_OPEN_BIT, drive);
+  mpu_device_.changeByteBitValue(MPU6050_RA_INT_PIN_CFG, MPU6050_INTCFG_INT_OPEN_BIT, drive);
 }
 
 bool MPU6050::getInterruptLatch() {
-  return mpu.readByteBit(MPU6050_RA_INT_PIN_CFG, MPU6050_INTCFG_LATCH_INT_EN_BIT);
+  return mpu_device_.readByteBit(MPU6050_RA_INT_PIN_CFG, MPU6050_INTCFG_LATCH_INT_EN_BIT);
 }
 
 void MPU6050::setInterruptLatch(bool latch) {
-  mpu.changeByteBitValue(MPU6050_RA_INT_PIN_CFG, MPU6050_INTCFG_LATCH_INT_EN_BIT, latch);
+  mpu_device_.changeByteBitValue(MPU6050_RA_INT_PIN_CFG, MPU6050_INTCFG_LATCH_INT_EN_BIT, latch);
 }
 
 bool MPU6050::getInterruptLatchClear() {
-  return mpu.readByteBit(MPU6050_RA_INT_PIN_CFG, MPU6050_INTCFG_INT_RD_CLEAR_BIT);
+  return mpu_device_.readByteBit(MPU6050_RA_INT_PIN_CFG, MPU6050_INTCFG_INT_RD_CLEAR_BIT);
 }
 
 void MPU6050::setInterruptLatchClear(bool clear) {
-  mpu.changeByteBitValue(MPU6050_RA_INT_PIN_CFG, MPU6050_INTCFG_INT_RD_CLEAR_BIT, clear);
+  mpu_device_.changeByteBitValue(MPU6050_RA_INT_PIN_CFG, MPU6050_INTCFG_INT_RD_CLEAR_BIT, clear);
 }
 
 bool MPU6050::getFSyncInterruptLevel() {
-  return mpu.readByteBit(MPU6050_RA_INT_PIN_CFG, MPU6050_INTCFG_FSYNC_INT_LEVEL_BIT);
+  return mpu_device_.readByteBit(MPU6050_RA_INT_PIN_CFG, MPU6050_INTCFG_FSYNC_INT_LEVEL_BIT);
 }
 
 void MPU6050::setFSyncInterruptLevel(bool level) {
-  mpu.changeByteBitValue(MPU6050_RA_INT_PIN_CFG, MPU6050_INTCFG_FSYNC_INT_LEVEL_BIT, level);
+  mpu_device_.changeByteBitValue(MPU6050_RA_INT_PIN_CFG, MPU6050_INTCFG_FSYNC_INT_LEVEL_BIT, level);
 }
 
 bool MPU6050::getFSyncInterruptEnabled() {
-  return mpu.readByteBit(MPU6050_RA_INT_PIN_CFG, MPU6050_INTCFG_FSYNC_INT_EN_BIT);
+  return mpu_device_.readByteBit(MPU6050_RA_INT_PIN_CFG, MPU6050_INTCFG_FSYNC_INT_EN_BIT);
 }
 
 void MPU6050::setFSyncInterruptEnabled(bool enabled) {
-  mpu.changeByteBitValue(MPU6050_RA_INT_PIN_CFG, MPU6050_INTCFG_FSYNC_INT_EN_BIT, enabled);
+  mpu_device_.changeByteBitValue(MPU6050_RA_INT_PIN_CFG, MPU6050_INTCFG_FSYNC_INT_EN_BIT, enabled);
 }
 
 bool MPU6050::getI2CBypassEnabled() {
-  return mpu.readByteBit(MPU6050_RA_INT_PIN_CFG, MPU6050_INTCFG_I2C_BYPASS_EN_BIT);
+  return mpu_device_.readByteBit(MPU6050_RA_INT_PIN_CFG, MPU6050_INTCFG_I2C_BYPASS_EN_BIT);
 }
 
 void MPU6050::setI2CBypassEnabled(bool enabled) {
-  mpu.changeByteBitValue(MPU6050_RA_INT_PIN_CFG, MPU6050_INTCFG_I2C_BYPASS_EN_BIT, enabled);
+  mpu_device_.changeByteBitValue(MPU6050_RA_INT_PIN_CFG, MPU6050_INTCFG_I2C_BYPASS_EN_BIT, enabled);
 }
 
 bool MPU6050::getClockOutputEnabled() {
-  return mpu.readByteBit(MPU6050_RA_INT_PIN_CFG, MPU6050_INTCFG_CLKOUT_EN_BIT);
+  return mpu_device_.readByteBit(MPU6050_RA_INT_PIN_CFG, MPU6050_INTCFG_CLKOUT_EN_BIT);
 }
 
 void MPU6050::setClockOutputEnabled(bool enabled) {
-  mpu.changeByteBitValue(MPU6050_RA_INT_PIN_CFG, MPU6050_INTCFG_CLKOUT_EN_BIT, enabled);
+  mpu_device_.changeByteBitValue(MPU6050_RA_INT_PIN_CFG, MPU6050_INTCFG_CLKOUT_EN_BIT, enabled);
 }
 
 uint8_t MPU6050::getIntEnabled() {
-  return mpu.readByte(MPU6050_RA_INT_ENABLE);
+  return mpu_device_.readByte(MPU6050_RA_INT_ENABLE);
 }
 
 void MPU6050::setIntEnabled(uint8_t enabled) {
-  mpu.writeByte(MPU6050_RA_INT_ENABLE, enabled);
+  mpu_device_.writeByte(MPU6050_RA_INT_ENABLE, enabled);
 }
 
 bool MPU6050::getIntFreefallEnabled() {
-  return mpu.readByteBit(MPU6050_RA_INT_ENABLE, MPU6050_INTERRUPT_FF_BIT);
+  return mpu_device_.readByteBit(MPU6050_RA_INT_ENABLE, MPU6050_INTERRUPT_FF_BIT);
 }
 
 void MPU6050::setIntFreefallEnabled(bool enabled) {
-  mpu.changeByteBitValue(MPU6050_RA_INT_ENABLE, MPU6050_INTERRUPT_FF_BIT, enabled);
+  mpu_device_.changeByteBitValue(MPU6050_RA_INT_ENABLE, MPU6050_INTERRUPT_FF_BIT, enabled);
 }
 
 bool MPU6050::getIntMotionEnabled() {
-  return mpu.readByteBit(MPU6050_RA_INT_ENABLE, MPU6050_INTERRUPT_MOT_BIT);
+  return mpu_device_.readByteBit(MPU6050_RA_INT_ENABLE, MPU6050_INTERRUPT_MOT_BIT);
 }
 
 void MPU6050::setIntMotionEnabled(bool enabled) {
-  mpu.changeByteBitValue(MPU6050_RA_INT_ENABLE, MPU6050_INTERRUPT_MOT_BIT, enabled);
+  mpu_device_.changeByteBitValue(MPU6050_RA_INT_ENABLE, MPU6050_INTERRUPT_MOT_BIT, enabled);
 }
 
 bool MPU6050::getIntZeroMotionEnabled() {
-  return mpu.readByteBit(MPU6050_RA_INT_ENABLE, MPU6050_INTERRUPT_ZMOT_BIT);
+  return mpu_device_.readByteBit(MPU6050_RA_INT_ENABLE, MPU6050_INTERRUPT_ZMOT_BIT);
 }
 
 void MPU6050::setIntZeroMotionEnabled(bool enabled) {
-  mpu.changeByteBitValue(MPU6050_RA_INT_ENABLE, MPU6050_INTERRUPT_ZMOT_BIT, enabled);
+  mpu_device_.changeByteBitValue(MPU6050_RA_INT_ENABLE, MPU6050_INTERRUPT_ZMOT_BIT, enabled);
 }
 
 bool MPU6050::getIntFIFOBufferOverflowEnabled() {
-  return mpu.readByteBit(MPU6050_RA_INT_ENABLE, MPU6050_INTERRUPT_FIFO_OFLOW_BIT);
+  return mpu_device_.readByteBit(MPU6050_RA_INT_ENABLE, MPU6050_INTERRUPT_FIFO_OFLOW_BIT);
 }
 
 void MPU6050::setIntFIFOBufferOverflowEnabled(bool enabled) {
-  mpu.changeByteBitValue(MPU6050_RA_INT_ENABLE, MPU6050_INTERRUPT_FIFO_OFLOW_BIT, enabled);
+  mpu_device_.changeByteBitValue(MPU6050_RA_INT_ENABLE, MPU6050_INTERRUPT_FIFO_OFLOW_BIT, enabled);
 }
 
 bool MPU6050::getIntI2CMasterEnabled() {
-  return mpu.readByteBit(MPU6050_RA_INT_ENABLE, MPU6050_INTERRUPT_I2C_MST_INT_BIT);
+  return mpu_device_.readByteBit(MPU6050_RA_INT_ENABLE, MPU6050_INTERRUPT_I2C_MST_INT_BIT);
 }
 
 void MPU6050::setIntI2CMasterEnabled(bool enabled) {
-  mpu.changeByteBitValue(MPU6050_RA_INT_ENABLE, MPU6050_INTERRUPT_I2C_MST_INT_BIT, enabled);
+  mpu_device_.changeByteBitValue(MPU6050_RA_INT_ENABLE, MPU6050_INTERRUPT_I2C_MST_INT_BIT, enabled);
 }
 
 bool MPU6050::getIntDataReadyEnabled() {
-  return mpu.readByteBit(MPU6050_RA_INT_ENABLE, MPU6050_INTERRUPT_DATA_RDY_BIT);
+  return mpu_device_.readByteBit(MPU6050_RA_INT_ENABLE, MPU6050_INTERRUPT_DATA_RDY_BIT);
 }
 
 void MPU6050::setIntDataReadyEnabled(bool enabled) {
-  mpu.changeByteBitValue(MPU6050_RA_INT_ENABLE, MPU6050_INTERRUPT_DATA_RDY_BIT, enabled);
+  mpu_device_.changeByteBitValue(MPU6050_RA_INT_ENABLE, MPU6050_INTERRUPT_DATA_RDY_BIT, enabled);
 }
 
 uint8_t MPU6050::getIntStatus() {
-  return mpu.readByte(MPU6050_RA_INT_STATUS);
+  return mpu_device_.readByte(MPU6050_RA_INT_STATUS);
 }
 
 bool MPU6050::getIntFreefallStatus() {
-  return mpu.readByteBit(MPU6050_RA_INT_STATUS, MPU6050_INTERRUPT_FF_BIT);
+  return mpu_device_.readByteBit(MPU6050_RA_INT_STATUS, MPU6050_INTERRUPT_FF_BIT);
 }
 
 bool MPU6050::getIntMotionStatus() {
-  return mpu.readByteBit(MPU6050_RA_INT_STATUS, MPU6050_INTERRUPT_MOT_BIT);
+  return mpu_device_.readByteBit(MPU6050_RA_INT_STATUS, MPU6050_INTERRUPT_MOT_BIT);
 }
 
 bool MPU6050::getIntZeroMotionStatus() {
-  return mpu.readByteBit(MPU6050_RA_INT_STATUS, MPU6050_INTERRUPT_ZMOT_BIT);
+  return mpu_device_.readByteBit(MPU6050_RA_INT_STATUS, MPU6050_INTERRUPT_ZMOT_BIT);
 }
 
 bool MPU6050::getIntFIFOBufferOverflowStatus() {
-  return mpu.readByteBit(MPU6050_RA_INT_STATUS, MPU6050_INTERRUPT_FIFO_OFLOW_BIT);
+  return mpu_device_.readByteBit(MPU6050_RA_INT_STATUS, MPU6050_INTERRUPT_FIFO_OFLOW_BIT);
 }
 
 bool MPU6050::getIntI2CMasterStatus() {
-  return mpu.readByteBit(MPU6050_RA_INT_STATUS, MPU6050_INTERRUPT_I2C_MST_INT_BIT);
+  return mpu_device_.readByteBit(MPU6050_RA_INT_STATUS, MPU6050_INTERRUPT_I2C_MST_INT_BIT);
 }
 
 bool MPU6050::getIntDataReadyStatus() {
-  return mpu.readByteBit(MPU6050_RA_INT_STATUS, MPU6050_INTERRUPT_DATA_RDY_BIT);
+  return mpu_device_.readByteBit(MPU6050_RA_INT_STATUS, MPU6050_INTERRUPT_DATA_RDY_BIT);
 }
 
-void MPU6050::getMotion9(int16_t* ax, int16_t* ay, int16_t* az, int16_t* gx, int16_t* gy, int16_t* gz, int16_t* mx, int16_t* my, int16_t* mz) {
+void MPU6050::getMotion9(int16_t* ax, int16_t* ay, int16_t* az,
+                         int16_t* gx, int16_t* gy, int16_t* gz,
+                         int16_t* mx, int16_t* my, int16_t* mz) {
   getMotion6(ax, ay, az, gx, gy, gz);
-  // TODO: magnetometer integration
+  // TODO(somebody): magnetometer integration
 }
 
 void MPU6050::getMotion6(int16_t* ax, int16_t* ay, int16_t* az, int16_t* gx, int16_t* gy, int16_t* gz) {
   uint8_t buffer[14];
-  mpu.readBytes(MPU6050_RA_ACCEL_XOUT_H, sizeof(buffer), buffer);
+  mpu_device_.readBytes(MPU6050_RA_ACCEL_XOUT_H, sizeof(buffer), buffer);
   *ax = (((int16_t)buffer[0]) << 8) | buffer[1];
   *ay = (((int16_t)buffer[2]) << 8) | buffer[3];
   *az = (((int16_t)buffer[4]) << 8) | buffer[5];
@@ -645,313 +654,319 @@ void MPU6050::getMotion6(int16_t* ax, int16_t* ay, int16_t* az, int16_t* gx, int
 
 void MPU6050::getAcceleration(int16_t* x, int16_t* y, int16_t* z) {
   uint8_t buffer[6];
-  mpu.readBytes(MPU6050_RA_ACCEL_XOUT_H, sizeof(buffer), buffer);
+  mpu_device_.readBytes(MPU6050_RA_ACCEL_XOUT_H, sizeof(buffer), buffer);
   *x = (((int16_t)buffer[0]) << 8) | buffer[1];
   *y = (((int16_t)buffer[2]) << 8) | buffer[3];
   *z = (((int16_t)buffer[4]) << 8) | buffer[5];
 }
 
 int16_t MPU6050::getAccelerationX() {
-  return mpu.readWord(MPU6050_RA_ACCEL_XOUT_H);
+  return mpu_device_.readWord(MPU6050_RA_ACCEL_XOUT_H);
 }
 
 int16_t MPU6050::getAccelerationY() {
-  return mpu.readWord(MPU6050_RA_ACCEL_YOUT_H);
+  return mpu_device_.readWord(MPU6050_RA_ACCEL_YOUT_H);
 }
 
 int16_t MPU6050::getAccelerationZ() {
-  return mpu.readWord(MPU6050_RA_ACCEL_ZOUT_H);
+  return mpu_device_.readWord(MPU6050_RA_ACCEL_ZOUT_H);
 }
 
 int16_t MPU6050::getTemperature() {
-  return mpu.readWord(MPU6050_RA_TEMP_OUT_H);
+  return mpu_device_.readWord(MPU6050_RA_TEMP_OUT_H);
 }
 
 void MPU6050::getRotation(int16_t* x, int16_t* y, int16_t* z) {
   uint8_t buffer[6];
-  mpu.readBytes(MPU6050_RA_GYRO_XOUT_H, sizeof(buffer), buffer);
+  mpu_device_.readBytes(MPU6050_RA_GYRO_XOUT_H, sizeof(buffer), buffer);
   *x = (((int16_t)buffer[0]) << 8) | buffer[1];
   *y = (((int16_t)buffer[2]) << 8) | buffer[3];
   *z = (((int16_t)buffer[4]) << 8) | buffer[5];
 }
 
 int16_t MPU6050::getRotationX() {
-  return mpu.readWord(MPU6050_RA_GYRO_XOUT_H);
+  return mpu_device_.readWord(MPU6050_RA_GYRO_XOUT_H);
 }
 
 int16_t MPU6050::getRotationY() {
-  return mpu.readWord(MPU6050_RA_GYRO_YOUT_H);
+  return mpu_device_.readWord(MPU6050_RA_GYRO_YOUT_H);
 }
 
 int16_t MPU6050::getRotationZ() {
-  return mpu.readWord(MPU6050_RA_GYRO_ZOUT_H);
+  return mpu_device_.readWord(MPU6050_RA_GYRO_ZOUT_H);
 }
 
 uint8_t MPU6050::getExternalSensorByte(int position) {
-  return mpu.readByte(MPU6050_RA_EXT_SENS_DATA_00 + position);
+  return mpu_device_.readByte(MPU6050_RA_EXT_SENS_DATA_00 + position);
 }
 
 uint16_t MPU6050::getExternalSensorWord(int position) {
-  return mpu.readWord(MPU6050_RA_EXT_SENS_DATA_00);
+  return mpu_device_.readWord(MPU6050_RA_EXT_SENS_DATA_00);
 }
 
 uint32_t MPU6050::getExternalSensorDWord(int position) {
   uint8_t buffer[4];
-  mpu.readBytes(MPU6050_RA_EXT_SENS_DATA_00 + position, 4, buffer);
+  mpu_device_.readBytes(MPU6050_RA_EXT_SENS_DATA_00 + position, 4, buffer);
   return (((uint32_t)buffer[0]) << 24) | (((uint32_t)buffer[1]) << 16) | (((uint16_t)buffer[2]) << 8) | buffer[3];
 }
 
 uint8_t MPU6050::getMotionStatus() {
-  return mpu.readByte(MPU6050_RA_MOT_DETECT_STATUS);
+  return mpu_device_.readByte(MPU6050_RA_MOT_DETECT_STATUS);
 }
 
 bool MPU6050::getXNegMotionDetected() {
-  return mpu.readByteBit(MPU6050_RA_MOT_DETECT_STATUS, MPU6050_MOTION_MOT_XNEG_BIT);
+  return mpu_device_.readByteBit(MPU6050_RA_MOT_DETECT_STATUS, MPU6050_MOTION_MOT_XNEG_BIT);
 }
 
 bool MPU6050::getXPosMotionDetected() {
-  return mpu.readByteBit(MPU6050_RA_MOT_DETECT_STATUS, MPU6050_MOTION_MOT_XPOS_BIT);
+  return mpu_device_.readByteBit(MPU6050_RA_MOT_DETECT_STATUS, MPU6050_MOTION_MOT_XPOS_BIT);
 }
 
 bool MPU6050::getYNegMotionDetected() {
-  return mpu.readByteBit(MPU6050_RA_MOT_DETECT_STATUS, MPU6050_MOTION_MOT_YNEG_BIT);
+  return mpu_device_.readByteBit(MPU6050_RA_MOT_DETECT_STATUS, MPU6050_MOTION_MOT_YNEG_BIT);
 }
 
 bool MPU6050::getYPosMotionDetected() {
-  return mpu.readByteBit(MPU6050_RA_MOT_DETECT_STATUS, MPU6050_MOTION_MOT_YPOS_BIT);
+  return mpu_device_.readByteBit(MPU6050_RA_MOT_DETECT_STATUS, MPU6050_MOTION_MOT_YPOS_BIT);
 }
 
 bool MPU6050::getZNegMotionDetected() {
-  return mpu.readByteBit(MPU6050_RA_MOT_DETECT_STATUS, MPU6050_MOTION_MOT_ZNEG_BIT);
+  return mpu_device_.readByteBit(MPU6050_RA_MOT_DETECT_STATUS, MPU6050_MOTION_MOT_ZNEG_BIT);
 }
 
 bool MPU6050::getZPosMotionDetected() {
-  return mpu.readByteBit(MPU6050_RA_MOT_DETECT_STATUS, MPU6050_MOTION_MOT_ZPOS_BIT);
+  return mpu_device_.readByteBit(MPU6050_RA_MOT_DETECT_STATUS, MPU6050_MOTION_MOT_ZPOS_BIT);
 }
 
 bool MPU6050::getZeroMotionDetected() {
-  return mpu.readByteBit(MPU6050_RA_MOT_DETECT_STATUS, MPU6050_MOTION_MOT_ZRMOT_BIT);
+  return mpu_device_.readByteBit(MPU6050_RA_MOT_DETECT_STATUS, MPU6050_MOTION_MOT_ZRMOT_BIT);
 }
 
 void MPU6050::setSlaveOutputByte(uint8_t num, uint8_t data) {
   if (num > 3) return;
-  mpu.writeByte(MPU6050_RA_I2C_SLV0_DO + num, data);
+  mpu_device_.writeByte(MPU6050_RA_I2C_SLV0_DO + num, data);
 }
 
 bool MPU6050::getExternalShadowDelayEnabled() {
-  return mpu.readByteBit(MPU6050_RA_I2C_MST_DELAY_CTRL, MPU6050_DELAYCTRL_DELAY_ES_SHADOW_BIT);
+  return mpu_device_.readByteBit(MPU6050_RA_I2C_MST_DELAY_CTRL, MPU6050_DELAYCTRL_DELAY_ES_SHADOW_BIT);
 }
 
 void MPU6050::setExternalShadowDelayEnabled(bool enabled) {
-  mpu.changeByteBitValue(MPU6050_RA_I2C_MST_DELAY_CTRL, MPU6050_DELAYCTRL_DELAY_ES_SHADOW_BIT, enabled);
+  mpu_device_.changeByteBitValue(MPU6050_RA_I2C_MST_DELAY_CTRL, MPU6050_DELAYCTRL_DELAY_ES_SHADOW_BIT, enabled);
 }
 
 bool MPU6050::getSlaveDelayEnabled(uint8_t num) {
   // MPU6050_DELAYCTRL_I2C_SLV4_DLY_EN_BIT is 4, SLV3 is 3, etc.
   if (num > 4) return 0;
-  return mpu.readByteBit(MPU6050_RA_I2C_MST_DELAY_CTRL, num);
+  return mpu_device_.readByteBit(MPU6050_RA_I2C_MST_DELAY_CTRL, num);
 }
 
 void MPU6050::setSlaveDelayEnabled(uint8_t num, bool enabled) {
-  mpu.changeByteBitValue(MPU6050_RA_I2C_MST_DELAY_CTRL, num, enabled);
+  mpu_device_.changeByteBitValue(MPU6050_RA_I2C_MST_DELAY_CTRL, num, enabled);
 }
 
 void MPU6050::resetGyroscopePath() {
-  mpu.setByteBit(MPU6050_RA_SIGNAL_PATH_RESET, MPU6050_PATHRESET_GYRO_RESET_BIT);
+  mpu_device_.setByteBit(MPU6050_RA_SIGNAL_PATH_RESET, MPU6050_PATHRESET_GYRO_RESET_BIT);
 }
 
 void MPU6050::resetAccelerometerPath() {
-  mpu.setByteBit(MPU6050_RA_SIGNAL_PATH_RESET, MPU6050_PATHRESET_ACCEL_RESET_BIT);
+  mpu_device_.setByteBit(MPU6050_RA_SIGNAL_PATH_RESET, MPU6050_PATHRESET_ACCEL_RESET_BIT);
 }
 
 void MPU6050::resetTemperaturePath() {
-  mpu.setByteBit(MPU6050_RA_SIGNAL_PATH_RESET, MPU6050_PATHRESET_TEMP_RESET_BIT);
+  mpu_device_.setByteBit(MPU6050_RA_SIGNAL_PATH_RESET, MPU6050_PATHRESET_TEMP_RESET_BIT);
 }
 
 uint8_t MPU6050::getAccelerometerPowerOnDelay() {
-  return mpu.readByteBits(MPU6050_RA_MOT_DETECT_CTRL, MPU6050_DETECT_ACCEL_ON_DELAY_BIT,
+  return mpu_device_.readByteBits(MPU6050_RA_MOT_DETECT_CTRL, MPU6050_DETECT_ACCEL_ON_DELAY_BIT,
                           MPU6050_DETECT_ACCEL_ON_DELAY_LENGTH);
 }
 
 void MPU6050::setAccelerometerPowerOnDelay(uint8_t delay) {
-  mpu.setByteBits(MPU6050_RA_MOT_DETECT_CTRL, MPU6050_DETECT_ACCEL_ON_DELAY_BIT,
+  mpu_device_.setByteBits(MPU6050_RA_MOT_DETECT_CTRL, MPU6050_DETECT_ACCEL_ON_DELAY_BIT,
                   MPU6050_DETECT_ACCEL_ON_DELAY_LENGTH, delay);
 }
 
 uint8_t MPU6050::getFreefallDetectionCounterDecrement() {
-  return mpu.readByteBits(MPU6050_RA_MOT_DETECT_CTRL, MPU6050_DETECT_FF_COUNT_BIT, MPU6050_DETECT_FF_COUNT_LENGTH);
+  return mpu_device_.readByteBits(MPU6050_RA_MOT_DETECT_CTRL, MPU6050_DETECT_FF_COUNT_BIT,
+                                  MPU6050_DETECT_FF_COUNT_LENGTH);
 }
 
 void MPU6050::setFreefallDetectionCounterDecrement(uint8_t decrement) {
-  mpu.setByteBits(MPU6050_RA_MOT_DETECT_CTRL, MPU6050_DETECT_FF_COUNT_BIT, MPU6050_DETECT_FF_COUNT_LENGTH, decrement);
+  mpu_device_.setByteBits(MPU6050_RA_MOT_DETECT_CTRL, MPU6050_DETECT_FF_COUNT_BIT,
+                          MPU6050_DETECT_FF_COUNT_LENGTH, decrement);
 }
 
 uint8_t MPU6050::getMotionDetectionCounterDecrement() {
-  return mpu.readByteBits(MPU6050_RA_MOT_DETECT_CTRL, MPU6050_DETECT_MOT_COUNT_BIT, MPU6050_DETECT_MOT_COUNT_LENGTH);
+  return mpu_device_.readByteBits(MPU6050_RA_MOT_DETECT_CTRL, MPU6050_DETECT_MOT_COUNT_BIT,
+                                  MPU6050_DETECT_MOT_COUNT_LENGTH);
 }
 
 void MPU6050::setMotionDetectionCounterDecrement(uint8_t decrement) {
-  mpu.setByteBits(MPU6050_RA_MOT_DETECT_CTRL, MPU6050_DETECT_MOT_COUNT_BIT, MPU6050_DETECT_MOT_COUNT_LENGTH, decrement);
+  mpu_device_.setByteBits(MPU6050_RA_MOT_DETECT_CTRL, MPU6050_DETECT_MOT_COUNT_BIT,
+                          MPU6050_DETECT_MOT_COUNT_LENGTH, decrement);
 }
 
 bool MPU6050::getFIFOEnabled() {
-  return mpu.readByteBit(MPU6050_RA_USER_CTRL, MPU6050_USERCTRL_FIFO_EN_BIT);
+  return mpu_device_.readByteBit(MPU6050_RA_USER_CTRL, MPU6050_USERCTRL_FIFO_EN_BIT);
 }
 
 void MPU6050::setFIFOEnabled(bool enabled) {
-  mpu.changeByteBitValue(MPU6050_RA_USER_CTRL, MPU6050_USERCTRL_FIFO_EN_BIT, enabled);
+  mpu_device_.changeByteBitValue(MPU6050_RA_USER_CTRL, MPU6050_USERCTRL_FIFO_EN_BIT, enabled);
 }
 
 bool MPU6050::getI2CMasterModeEnabled() {
-  return mpu.readByteBit(MPU6050_RA_USER_CTRL, MPU6050_USERCTRL_I2C_MST_EN_BIT);
+  return mpu_device_.readByteBit(MPU6050_RA_USER_CTRL, MPU6050_USERCTRL_I2C_MST_EN_BIT);
 }
 
 void MPU6050::setI2CMasterModeEnabled(bool enabled) {
-  mpu.changeByteBitValue(MPU6050_RA_USER_CTRL, MPU6050_USERCTRL_I2C_MST_EN_BIT, enabled);
+  mpu_device_.changeByteBitValue(MPU6050_RA_USER_CTRL, MPU6050_USERCTRL_I2C_MST_EN_BIT, enabled);
 }
 
 void MPU6050::switchSPIEnabled(bool enabled) {
-  mpu.changeByteBitValue(MPU6050_RA_USER_CTRL, MPU6050_USERCTRL_I2C_IF_DIS_BIT, enabled);
+  mpu_device_.changeByteBitValue(MPU6050_RA_USER_CTRL, MPU6050_USERCTRL_I2C_IF_DIS_BIT, enabled);
 }
 
 void MPU6050::resetFIFO() {
-  mpu.setByteBit(MPU6050_RA_USER_CTRL, MPU6050_USERCTRL_FIFO_RESET_BIT);
+  mpu_device_.setByteBit(MPU6050_RA_USER_CTRL, MPU6050_USERCTRL_FIFO_RESET_BIT);
 }
 
 void MPU6050::resetI2CMaster() {
-  mpu.setByteBit(MPU6050_RA_USER_CTRL, MPU6050_USERCTRL_I2C_MST_RESET_BIT);
+  mpu_device_.setByteBit(MPU6050_RA_USER_CTRL, MPU6050_USERCTRL_I2C_MST_RESET_BIT);
 }
 
 void MPU6050::resetSensors() {
-  mpu.setByteBit(MPU6050_RA_USER_CTRL, MPU6050_USERCTRL_SIG_COND_RESET_BIT);
+  mpu_device_.setByteBit(MPU6050_RA_USER_CTRL, MPU6050_USERCTRL_SIG_COND_RESET_BIT);
 }
 
 void MPU6050::reset() {
-  mpu.setByteBit(MPU6050_RA_PWR_MGMT_1, MPU6050_PWR1_DEVICE_RESET_BIT);
+  mpu_device_.setByteBit(MPU6050_RA_PWR_MGMT_1, MPU6050_PWR1_DEVICE_RESET_BIT);
 }
 
 bool MPU6050::getSleepEnabled() {
-  return mpu.readByteBit(MPU6050_RA_PWR_MGMT_1, MPU6050_PWR1_SLEEP_BIT);
+  return mpu_device_.readByteBit(MPU6050_RA_PWR_MGMT_1, MPU6050_PWR1_SLEEP_BIT);
 }
 
 void MPU6050::setSleepEnabled(bool enabled) {
-  mpu.changeByteBitValue(MPU6050_RA_PWR_MGMT_1, MPU6050_PWR1_SLEEP_BIT, enabled);
+  mpu_device_.changeByteBitValue(MPU6050_RA_PWR_MGMT_1, MPU6050_PWR1_SLEEP_BIT, enabled);
 }
 
 bool MPU6050::getWakeCycleEnabled() {
-  return mpu.readByteBit(MPU6050_RA_PWR_MGMT_1, MPU6050_PWR1_CYCLE_BIT);
+  return mpu_device_.readByteBit(MPU6050_RA_PWR_MGMT_1, MPU6050_PWR1_CYCLE_BIT);
 }
 
 void MPU6050::setWakeCycleEnabled(bool enabled) {
   if (enabled) {
-    mpu.setByteBit(MPU6050_RA_PWR_MGMT_1, MPU6050_PWR1_CYCLE_BIT);
+    mpu_device_.setByteBit(MPU6050_RA_PWR_MGMT_1, MPU6050_PWR1_CYCLE_BIT);
     return;
   }
-  mpu.clearByteBit(MPU6050_RA_PWR_MGMT_1, MPU6050_PWR1_CYCLE_BIT);
+  mpu_device_.clearByteBit(MPU6050_RA_PWR_MGMT_1, MPU6050_PWR1_CYCLE_BIT);
 }
 
 bool MPU6050::getTempSensorEnabled() {
-  return mpu.readByteBit(MPU6050_RA_PWR_MGMT_1, MPU6050_PWR1_TEMP_DIS_BIT) == 0;  // 1 is actually disabled here
+  return mpu_device_.readByteBit(MPU6050_RA_PWR_MGMT_1, MPU6050_PWR1_TEMP_DIS_BIT) == 0;  // 1 is actually disabled here
 }
 
 void MPU6050::setTempSensorEnabled(bool enabled) {
   if (enabled) {
-    mpu.clearByteBit(MPU6050_RA_PWR_MGMT_1, MPU6050_PWR1_TEMP_DIS_BIT);
+    mpu_device_.clearByteBit(MPU6050_RA_PWR_MGMT_1, MPU6050_PWR1_TEMP_DIS_BIT);
     return;
   }
-  mpu.setByteBit(MPU6050_RA_PWR_MGMT_1, MPU6050_PWR1_TEMP_DIS_BIT);
+  mpu_device_.setByteBit(MPU6050_RA_PWR_MGMT_1, MPU6050_PWR1_TEMP_DIS_BIT);
 }
 
 uint8_t MPU6050::getClockSource() {
-  return mpu.readByteBits(MPU6050_RA_PWR_MGMT_1, MPU6050_PWR1_CLKSEL_BIT, MPU6050_PWR1_CLKSEL_LENGTH);
+  return mpu_device_.readByteBits(MPU6050_RA_PWR_MGMT_1, MPU6050_PWR1_CLKSEL_BIT, MPU6050_PWR1_CLKSEL_LENGTH);
 }
 
 void MPU6050::setClockSource(uint8_t source) {
-  mpu.setByteBits(MPU6050_RA_PWR_MGMT_1, MPU6050_PWR1_CLKSEL_BIT, MPU6050_PWR1_CLKSEL_LENGTH, source);
+  mpu_device_.setByteBits(MPU6050_RA_PWR_MGMT_1, MPU6050_PWR1_CLKSEL_BIT, MPU6050_PWR1_CLKSEL_LENGTH, source);
 }
 
 uint8_t MPU6050::getWakeFrequency() {
-  return mpu.readByteBits(MPU6050_RA_PWR_MGMT_2, MPU6050_PWR2_LP_WAKE_CTRL_BIT, MPU6050_PWR2_LP_WAKE_CTRL_LENGTH);
+  return mpu_device_.readByteBits(MPU6050_RA_PWR_MGMT_2, MPU6050_PWR2_LP_WAKE_CTRL_BIT,
+                                  MPU6050_PWR2_LP_WAKE_CTRL_LENGTH);
 }
 
 void MPU6050::setWakeFrequency(uint8_t frequency) {
-  mpu.setByteBits(MPU6050_RA_PWR_MGMT_2, MPU6050_PWR2_LP_WAKE_CTRL_BIT, MPU6050_PWR2_LP_WAKE_CTRL_LENGTH, frequency);
+  mpu_device_.setByteBits(MPU6050_RA_PWR_MGMT_2, MPU6050_PWR2_LP_WAKE_CTRL_BIT,
+                          MPU6050_PWR2_LP_WAKE_CTRL_LENGTH, frequency);
 }
 
 bool MPU6050::getStandbyXAccelEnabled() {
-  return mpu.readByteBit(MPU6050_RA_PWR_MGMT_2, MPU6050_PWR2_STBY_XA_BIT);
+  return mpu_device_.readByteBit(MPU6050_RA_PWR_MGMT_2, MPU6050_PWR2_STBY_XA_BIT);
 }
 
 void MPU6050::setStandbyXAccelEnabled(bool enabled) {
-  mpu.changeByteBitValue(MPU6050_RA_PWR_MGMT_2, MPU6050_PWR2_STBY_XA_BIT, enabled);
+  mpu_device_.changeByteBitValue(MPU6050_RA_PWR_MGMT_2, MPU6050_PWR2_STBY_XA_BIT, enabled);
 }
 
 bool MPU6050::getStandbyYAccelEnabled() {
-  return mpu.readByteBit(MPU6050_RA_PWR_MGMT_2, MPU6050_PWR2_STBY_YA_BIT);
+  return mpu_device_.readByteBit(MPU6050_RA_PWR_MGMT_2, MPU6050_PWR2_STBY_YA_BIT);
 }
 
 void MPU6050::setStandbyYAccelEnabled(bool enabled) {
-  mpu.changeByteBitValue(MPU6050_RA_PWR_MGMT_2, MPU6050_PWR2_STBY_YA_BIT, enabled);
+  mpu_device_.changeByteBitValue(MPU6050_RA_PWR_MGMT_2, MPU6050_PWR2_STBY_YA_BIT, enabled);
 }
 
 bool MPU6050::getStandbyZAccelEnabled() {
-  return mpu.readByteBit(MPU6050_RA_PWR_MGMT_2, MPU6050_PWR2_STBY_ZA_BIT);
+  return mpu_device_.readByteBit(MPU6050_RA_PWR_MGMT_2, MPU6050_PWR2_STBY_ZA_BIT);
 }
 
 void MPU6050::setStandbyZAccelEnabled(bool enabled) {
-  mpu.changeByteBitValue(MPU6050_RA_PWR_MGMT_2, MPU6050_PWR2_STBY_ZA_BIT, enabled);
+  mpu_device_.changeByteBitValue(MPU6050_RA_PWR_MGMT_2, MPU6050_PWR2_STBY_ZA_BIT, enabled);
 }
 
 bool MPU6050::getStandbyXGyroEnabled() {
-  return mpu.readByteBit(MPU6050_RA_PWR_MGMT_2, MPU6050_PWR2_STBY_XG_BIT);
+  return mpu_device_.readByteBit(MPU6050_RA_PWR_MGMT_2, MPU6050_PWR2_STBY_XG_BIT);
 }
 
 void MPU6050::setStandbyXGyroEnabled(bool enabled) {
-  mpu.changeByteBitValue(MPU6050_RA_PWR_MGMT_2, MPU6050_PWR2_STBY_XG_BIT, enabled);
+  mpu_device_.changeByteBitValue(MPU6050_RA_PWR_MGMT_2, MPU6050_PWR2_STBY_XG_BIT, enabled);
 }
 
 bool MPU6050::getStandbyYGyroEnabled() {
-  return mpu.readByteBit(MPU6050_RA_PWR_MGMT_2, MPU6050_PWR2_STBY_YG_BIT);
+  return mpu_device_.readByteBit(MPU6050_RA_PWR_MGMT_2, MPU6050_PWR2_STBY_YG_BIT);
 }
 
 void MPU6050::setStandbyYGyroEnabled(bool enabled) {
-  mpu.changeByteBitValue(MPU6050_RA_PWR_MGMT_2, MPU6050_PWR2_STBY_YG_BIT, enabled);
+  mpu_device_.changeByteBitValue(MPU6050_RA_PWR_MGMT_2, MPU6050_PWR2_STBY_YG_BIT, enabled);
 }
 
 bool MPU6050::getStandbyZGyroEnabled() {
-  return mpu.readByteBit(MPU6050_RA_PWR_MGMT_2, MPU6050_PWR2_STBY_ZG_BIT);
+  return mpu_device_.readByteBit(MPU6050_RA_PWR_MGMT_2, MPU6050_PWR2_STBY_ZG_BIT);
 }
 
 void MPU6050::setStandbyZGyroEnabled(bool enabled) {
-  mpu.changeByteBitValue(MPU6050_RA_PWR_MGMT_2, MPU6050_PWR2_STBY_ZG_BIT, enabled);
+  mpu_device_.changeByteBitValue(MPU6050_RA_PWR_MGMT_2, MPU6050_PWR2_STBY_ZG_BIT, enabled);
 }
 
 uint16_t MPU6050::getFIFOCount() {
-  return mpu.readWord(MPU6050_RA_FIFO_COUNTH);
+  return mpu_device_.readWord(MPU6050_RA_FIFO_COUNTH);
 }
 
 uint8_t MPU6050::getFIFOByte() {
-  return mpu.readByte(MPU6050_RA_FIFO_R_W);
+  return mpu_device_.readByte(MPU6050_RA_FIFO_R_W);
 }
 
 void MPU6050::getFIFOBytes(uint8_t *data, uint8_t length) {
   if (length > 0) {
-    mpu.readBytes(MPU6050_RA_FIFO_R_W, length, data);
+    mpu_device_.readBytes(MPU6050_RA_FIFO_R_W, length, data);
     return;
   }
   *data = 0;
 }
 
 void MPU6050::setFIFOByte(uint8_t data) {
-  mpu.writeByte(MPU6050_RA_FIFO_R_W, data);
+  mpu_device_.writeByte(MPU6050_RA_FIFO_R_W, data);
 }
 
 uint8_t MPU6050::getDeviceID() {
-  return mpu.readByteBits(MPU6050_RA_WHO_AM_I, MPU6050_WHO_AM_I_BIT, MPU6050_WHO_AM_I_LENGTH);
+  return mpu_device_.readByteBits(MPU6050_RA_WHO_AM_I, MPU6050_WHO_AM_I_BIT, MPU6050_WHO_AM_I_LENGTH);
 }
 
 void MPU6050::setDeviceID(uint8_t id) {
-  mpu.setByteBits(MPU6050_RA_WHO_AM_I, MPU6050_WHO_AM_I_BIT, MPU6050_WHO_AM_I_LENGTH, id);
+  mpu_device_.setByteBits(MPU6050_RA_WHO_AM_I, MPU6050_WHO_AM_I_BIT, MPU6050_WHO_AM_I_LENGTH, id);
 }
 
 // ======== UNDOCUMENTED/DMP REGISTERS/METHODS ========
@@ -959,203 +974,203 @@ void MPU6050::setDeviceID(uint8_t id) {
 // XG_OFFS_TC register
 
 uint8_t MPU6050::getOTPBankValid() {
-  return mpu.readByteBit(MPU6050_RA_XG_OFFS_TC, MPU6050_TC_OTP_BNK_VLD_BIT);
+  return mpu_device_.readByteBit(MPU6050_RA_XG_OFFS_TC, MPU6050_TC_OTP_BNK_VLD_BIT);
 }
 
 void MPU6050::setOTPBankValid(bool enabled) {
-  mpu.changeByteBitValue(MPU6050_RA_XG_OFFS_TC, MPU6050_TC_OTP_BNK_VLD_BIT, enabled);
+  mpu_device_.changeByteBitValue(MPU6050_RA_XG_OFFS_TC, MPU6050_TC_OTP_BNK_VLD_BIT, enabled);
 }
 
 int8_t MPU6050::getXGyroOffsetTC() {
-  return mpu.readByteBits(MPU6050_RA_XG_OFFS_TC, MPU6050_TC_OFFSET_BIT, MPU6050_TC_OFFSET_LENGTH);
+  return mpu_device_.readByteBits(MPU6050_RA_XG_OFFS_TC, MPU6050_TC_OFFSET_BIT, MPU6050_TC_OFFSET_LENGTH);
 }
 
 void MPU6050::setXGyroOffsetTC(int8_t offset) {
-  mpu.setByteBits(MPU6050_RA_XG_OFFS_TC, MPU6050_TC_OFFSET_BIT, MPU6050_TC_OFFSET_LENGTH, offset);
+  mpu_device_.setByteBits(MPU6050_RA_XG_OFFS_TC, MPU6050_TC_OFFSET_BIT, MPU6050_TC_OFFSET_LENGTH, offset);
 }
 
 // YG_OFFS_TC register
 
 int8_t MPU6050::getYGyroOffsetTC() {
-  return mpu.readByteBits(MPU6050_RA_YG_OFFS_TC, MPU6050_TC_OFFSET_BIT, MPU6050_TC_OFFSET_LENGTH);
+  return mpu_device_.readByteBits(MPU6050_RA_YG_OFFS_TC, MPU6050_TC_OFFSET_BIT, MPU6050_TC_OFFSET_LENGTH);
 }
 
 void MPU6050::setYGyroOffsetTC(int8_t offset) {
-  mpu.setByteBits(MPU6050_RA_YG_OFFS_TC, MPU6050_TC_OFFSET_BIT, MPU6050_TC_OFFSET_LENGTH, offset);
+  mpu_device_.setByteBits(MPU6050_RA_YG_OFFS_TC, MPU6050_TC_OFFSET_BIT, MPU6050_TC_OFFSET_LENGTH, offset);
 }
 
 // ZG_OFFS_TC register
 
 int8_t MPU6050::getZGyroOffsetTC() {
-  return mpu.readByteBits(MPU6050_RA_ZG_OFFS_TC, MPU6050_TC_OFFSET_BIT, MPU6050_TC_OFFSET_LENGTH);
+  return mpu_device_.readByteBits(MPU6050_RA_ZG_OFFS_TC, MPU6050_TC_OFFSET_BIT, MPU6050_TC_OFFSET_LENGTH);
 }
 
 void MPU6050::setZGyroOffsetTC(int8_t offset) {
-  mpu.setByteBits(MPU6050_RA_ZG_OFFS_TC, MPU6050_TC_OFFSET_BIT, MPU6050_TC_OFFSET_LENGTH, offset);
+  mpu_device_.setByteBits(MPU6050_RA_ZG_OFFS_TC, MPU6050_TC_OFFSET_BIT, MPU6050_TC_OFFSET_LENGTH, offset);
 }
 
 // X_FINE_GAIN register
 
 int8_t MPU6050::getXFineGain() {
-  return mpu.readByte(MPU6050_RA_X_FINE_GAIN);
+  return mpu_device_.readByte(MPU6050_RA_X_FINE_GAIN);
 }
 
 void MPU6050::setXFineGain(int8_t gain) {
-  mpu.writeByte(MPU6050_RA_X_FINE_GAIN, gain);
+  mpu_device_.writeByte(MPU6050_RA_X_FINE_GAIN, gain);
 }
 
 // Y_FINE_GAIN register
 
 int8_t MPU6050::getYFineGain() {
-  return mpu.readByte(MPU6050_RA_Y_FINE_GAIN);
+  return mpu_device_.readByte(MPU6050_RA_Y_FINE_GAIN);
 }
 
 void MPU6050::setYFineGain(int8_t gain) {
-  mpu.writeByte(MPU6050_RA_Y_FINE_GAIN, gain);
+  mpu_device_.writeByte(MPU6050_RA_Y_FINE_GAIN, gain);
 }
 
 // Z_FINE_GAIN register
 
 int8_t MPU6050::getZFineGain() {
-  return mpu.readByte(MPU6050_RA_Z_FINE_GAIN);
+  return mpu_device_.readByte(MPU6050_RA_Z_FINE_GAIN);
 }
 
 void MPU6050::setZFineGain(int8_t gain) {
-    mpu.writeByte(MPU6050_RA_Z_FINE_GAIN, gain);
+    mpu_device_.writeByte(MPU6050_RA_Z_FINE_GAIN, gain);
 }
 
 // XA_OFFS_* registers
 
 int16_t MPU6050::getXAccelOffset() {
   uint8_t slave_address = getDeviceID() < 0x38 ? MPU6050_RA_XA_OFFS_H : 0x77;  // MPU6050,MPU9150 Vs MPU6500,MPU9250
-  return mpu.readWord(slave_address);
+  return mpu_device_.readWord(slave_address);
 }
 
 void MPU6050::setXAccelOffset(int16_t offset) {
   uint8_t slave_address = getDeviceID() < 0x38 ? MPU6050_RA_XA_OFFS_H : 0x77;  // MPU6050,MPU9150 Vs MPU6500,MPU9250
-  mpu.writeWord(slave_address, offset);
+  mpu_device_.writeWord(slave_address, offset);
 }
 
 // YA_OFFS_* register
 
 int16_t MPU6050::getYAccelOffset() {
   uint8_t slave_address = getDeviceID() < 0x38 ? MPU6050_RA_YA_OFFS_H : 0x7A;  // MPU6050,MPU9150 Vs MPU6500,MPU9250
-  return mpu.readWord(slave_address);
+  return mpu_device_.readWord(slave_address);
 }
 
 void MPU6050::setYAccelOffset(int16_t offset) {
   uint8_t slave_address = getDeviceID() < 0x38 ? MPU6050_RA_YA_OFFS_H : 0x7A;  // MPU6050,MPU9150 Vs MPU6500,MPU9250
-  mpu.writeWord(slave_address, offset);
+  mpu_device_.writeWord(slave_address, offset);
 }
 
 // ZA_OFFS_* register
 
 int16_t MPU6050::getZAccelOffset() {
   uint8_t slave_address = getDeviceID() < 0x38 ? MPU6050_RA_ZA_OFFS_H : 0x7D;  // MPU6050,MPU9150 Vs MPU6500,MPU9250
-  return mpu.readWord(slave_address);
+  return mpu_device_.readWord(slave_address);
 }
 
 void MPU6050::setZAccelOffset(int16_t offset) {
   uint8_t slave_address = getDeviceID() < 0x38 ? MPU6050_RA_ZA_OFFS_H : 0x7D;  // MPU6050,MPU9150 Vs MPU6500,MPU9250
-  mpu.writeWord(slave_address, offset);
+  mpu_device_.writeWord(slave_address, offset);
 }
 
 // XG_OFFS_USR* registers
 
 int16_t MPU6050::getXGyroOffset() {
-  return mpu.readWord(MPU6050_RA_XG_OFFS_USRH);
+  return mpu_device_.readWord(MPU6050_RA_XG_OFFS_USRH);
 }
 
 void MPU6050::setXGyroOffset(int16_t offset) {
-  mpu.writeWord(MPU6050_RA_XG_OFFS_USRH, offset);
+  mpu_device_.writeWord(MPU6050_RA_XG_OFFS_USRH, offset);
 }
 
 // YG_OFFS_USR* register
 
 int16_t MPU6050::getYGyroOffset() {
-  return mpu.readWord(MPU6050_RA_YG_OFFS_USRH);
+  return mpu_device_.readWord(MPU6050_RA_YG_OFFS_USRH);
 }
 
 void MPU6050::setYGyroOffset(int16_t offset) {
-  mpu.writeWord(MPU6050_RA_YG_OFFS_USRH, offset);
+  mpu_device_.writeWord(MPU6050_RA_YG_OFFS_USRH, offset);
 }
 
 // ZG_OFFS_USR* register
 
 int16_t MPU6050::getZGyroOffset() {
-  return mpu.readWord(MPU6050_RA_ZG_OFFS_USRH);
+  return mpu_device_.readWord(MPU6050_RA_ZG_OFFS_USRH);
 }
 
 void MPU6050::setZGyroOffset(int16_t offset) {
-  mpu.writeWord(MPU6050_RA_ZG_OFFS_USRH, offset);
+  mpu_device_.writeWord(MPU6050_RA_ZG_OFFS_USRH, offset);
 }
 
 // INT_ENABLE register (DMP functions)
 
 bool MPU6050::getIntPLLReadyEnabled() {
-  return mpu.readByteBit(MPU6050_RA_INT_ENABLE, MPU6050_INTERRUPT_PLL_RDY_INT_BIT);
+  return mpu_device_.readByteBit(MPU6050_RA_INT_ENABLE, MPU6050_INTERRUPT_PLL_RDY_INT_BIT);
 }
 
 void MPU6050::setIntPLLReadyEnabled(bool enabled) {
-  mpu.changeByteBitValue(MPU6050_RA_INT_ENABLE, MPU6050_INTERRUPT_PLL_RDY_INT_BIT, enabled);
+  mpu_device_.changeByteBitValue(MPU6050_RA_INT_ENABLE, MPU6050_INTERRUPT_PLL_RDY_INT_BIT, enabled);
 }
 
 bool MPU6050::getIntDMPEnabled() {
-  return mpu.readByteBit(MPU6050_RA_INT_ENABLE, MPU6050_INTERRUPT_DMP_INT_BIT);
+  return mpu_device_.readByteBit(MPU6050_RA_INT_ENABLE, MPU6050_INTERRUPT_DMP_INT_BIT);
 }
 
 void MPU6050::setIntDMPEnabled(bool enabled) {
-  mpu.changeByteBitValue(MPU6050_RA_INT_ENABLE, MPU6050_INTERRUPT_DMP_INT_BIT, enabled);
+  mpu_device_.changeByteBitValue(MPU6050_RA_INT_ENABLE, MPU6050_INTERRUPT_DMP_INT_BIT, enabled);
 }
 
 // DMP_INT_STATUS
 
 bool MPU6050::getDMPInt5Status() {
-  return mpu.readByteBit(MPU6050_RA_DMP_INT_STATUS, MPU6050_DMPINT_5_BIT);
+  return mpu_device_.readByteBit(MPU6050_RA_DMP_INT_STATUS, MPU6050_DMPINT_5_BIT);
 }
 
 bool MPU6050::getDMPInt4Status() {
-  return mpu.readByteBit(MPU6050_RA_DMP_INT_STATUS, MPU6050_DMPINT_4_BIT);
+  return mpu_device_.readByteBit(MPU6050_RA_DMP_INT_STATUS, MPU6050_DMPINT_4_BIT);
 }
 
 bool MPU6050::getDMPInt3Status() {
-  return mpu.readByteBit(MPU6050_RA_DMP_INT_STATUS, MPU6050_DMPINT_3_BIT);
+  return mpu_device_.readByteBit(MPU6050_RA_DMP_INT_STATUS, MPU6050_DMPINT_3_BIT);
 }
 
 bool MPU6050::getDMPInt2Status() {
-  return mpu.readByteBit(MPU6050_RA_DMP_INT_STATUS, MPU6050_DMPINT_2_BIT);
+  return mpu_device_.readByteBit(MPU6050_RA_DMP_INT_STATUS, MPU6050_DMPINT_2_BIT);
 }
 
 bool MPU6050::getDMPInt1Status() {
-  return mpu.readByteBit(MPU6050_RA_DMP_INT_STATUS, MPU6050_DMPINT_1_BIT);
+  return mpu_device_.readByteBit(MPU6050_RA_DMP_INT_STATUS, MPU6050_DMPINT_1_BIT);
 }
 
 bool MPU6050::getDMPInt0Status() {
-  return mpu.readByteBit(MPU6050_RA_DMP_INT_STATUS, MPU6050_DMPINT_0_BIT);
+  return mpu_device_.readByteBit(MPU6050_RA_DMP_INT_STATUS, MPU6050_DMPINT_0_BIT);
 }
 
 // INT_STATUS register (DMP functions)
 
 bool MPU6050::getIntPLLReadyStatus() {
-  return mpu.readByteBit(MPU6050_RA_INT_STATUS, MPU6050_INTERRUPT_PLL_RDY_INT_BIT);
+  return mpu_device_.readByteBit(MPU6050_RA_INT_STATUS, MPU6050_INTERRUPT_PLL_RDY_INT_BIT);
 }
 
 bool MPU6050::getIntDMPStatus() {
-  return mpu.readByteBit(MPU6050_RA_INT_STATUS, MPU6050_INTERRUPT_DMP_INT_BIT);
+  return mpu_device_.readByteBit(MPU6050_RA_INT_STATUS, MPU6050_INTERRUPT_DMP_INT_BIT);
 }
 
 // USER_CTRL register (DMP functions)
 
 bool MPU6050::getDMPEnabled() {
-  return mpu.readByteBit(MPU6050_RA_USER_CTRL, MPU6050_USERCTRL_DMP_EN_BIT);
+  return mpu_device_.readByteBit(MPU6050_RA_USER_CTRL, MPU6050_USERCTRL_DMP_EN_BIT);
 }
 
 void MPU6050::setDMPEnabled(bool enabled) {
-  mpu.changeByteBitValue(MPU6050_RA_USER_CTRL, MPU6050_USERCTRL_DMP_EN_BIT, enabled);
+  mpu_device_.changeByteBitValue(MPU6050_RA_USER_CTRL, MPU6050_USERCTRL_DMP_EN_BIT, enabled);
 }
 
 void MPU6050::resetDMP() {
-  mpu.setByteBit(MPU6050_RA_USER_CTRL, MPU6050_USERCTRL_DMP_RESET_BIT);
+  mpu_device_.setByteBit(MPU6050_RA_USER_CTRL, MPU6050_USERCTRL_DMP_RESET_BIT);
 }
 
 // BANK_SEL register
@@ -1164,23 +1179,23 @@ void MPU6050::setMemoryBank(uint8_t bank, bool prefetchEnabled, bool userBank) {
   bank &= 0x1F;
   if (userBank) bank |= 0x20;
   if (prefetchEnabled) bank |= 0x40;
-  mpu.writeByte(MPU6050_RA_BANK_SEL, bank);
+  mpu_device_.writeByte(MPU6050_RA_BANK_SEL, bank);
 }
 
 // MEM_START_ADDR register
 
 void MPU6050::setMemoryStartAddress(uint8_t address) {
-  mpu.writeByte(MPU6050_RA_MEM_START_ADDR, address);
+  mpu_device_.writeByte(MPU6050_RA_MEM_START_ADDR, address);
 }
 
 // MEM_R_W register
 
 uint8_t MPU6050::readMemoryByte() {
-  return mpu.readByte(MPU6050_RA_MEM_R_W);
+  return mpu_device_.readByte(MPU6050_RA_MEM_R_W);
 }
 
 void MPU6050::writeMemoryByte(uint8_t data) {
-  mpu.writeByte(MPU6050_RA_MEM_R_W, data);
+  mpu_device_.writeByte(MPU6050_RA_MEM_R_W, data);
 }
 
 // void MPU6050::readMemoryBlock(uint8_t *data, uint16_t dataSize, uint8_t bank, uint8_t address) {
@@ -1352,7 +1367,7 @@ void MPU6050::writeMemoryByte(uint8_t data) {
 //                 //setIntZeroMotionEnabled(true);
 //                 //setIntFIFOBufferOverflowEnabled(true);
 //                 //setIntDMPEnabled(true);
-//                 mpu.writeByte(MPU6050_RA_INT_ENABLE, 0x32);  // single operation
+//                 mpu_device_.writeByte(MPU6050_RA_INT_ENABLE, 0x32);  // single operation
 
 //                 success = true;
 //             } else {
@@ -1376,21 +1391,21 @@ void MPU6050::writeMemoryByte(uint8_t data) {
 // // DMP_CFG_1 register
 
 // uint8_t MPU6050::getDMPConfig1() {
-//     return mpu.readByte(MPU6050_RA_DMP_CFG_1);
+//     return mpu_device_.readByte(MPU6050_RA_DMP_CFG_1);
 //
 // }
 // void MPU6050::setDMPConfig1(uint8_t config) {
-//     mpu.writeByte(MPU6050_RA_DMP_CFG_1, config);
+//     mpu_device_.writeByte(MPU6050_RA_DMP_CFG_1, config);
 // }
 
 // // DMP_CFG_2 register
 
 // uint8_t MPU6050::getDMPConfig2() {
-//     return mpu.readByte(MPU6050_RA_DMP_CFG_2);
+//     return mpu_device_.readByte(MPU6050_RA_DMP_CFG_2);
 //
 // }
 // void MPU6050::setDMPConfig2(uint8_t config) {
-//     mpu.writeByte(MPU6050_RA_DMP_CFG_2, config);
+//     mpu_device_.writeByte(MPU6050_RA_DMP_CFG_2, config);
 // }
 
 
