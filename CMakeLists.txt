@@ -25,6 +25,7 @@ include_directories(
 )
 
 add_executable(mpu6050_node 
+  src/main.cpp
   src/mpu6050.cpp
   src/mpu6050_node.cpp
 )

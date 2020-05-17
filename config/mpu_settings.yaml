@@ -1,0 +1,11 @@
+# I2C Bus URI used to comunicate with I2C devices (default: "/dev/i2c-1"
+bus_uri: "/dev/i2c-1"
+
+# I2C address of MPU6050 (default: 0x68)
+mpu_address: 0x68
+
+# Frequency in Hertz wich IMU data is published (default: 30)
+pub_rate: 10
+
+# Frame if of IMU message (default: "imu")
+frame_id: "imu"
