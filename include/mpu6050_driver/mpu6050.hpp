@@ -220,6 +220,11 @@ THE SOFTWARE.
 #define MPU6050_GYRO_FS_1000 0x02
 #define MPU6050_GYRO_FS_2000 0x03
 
+#define GYRO_SCALE_MODIFIER_250DEG 131.0
+#define GYRO_SCALE_MODIFIER_500DEG 65.5
+#define GYRO_SCALE_MODIFIER_1000DEG 32.8
+#define GYRO_SCALE_MODIFIER_2000DEG 16.4
+
 #define MPU6050_ACONFIG_XA_ST_BIT 7
 #define MPU6050_ACONFIG_YA_ST_BIT 6
 #define MPU6050_ACONFIG_ZA_ST_BIT 5
@@ -232,6 +237,11 @@ THE SOFTWARE.
 #define MPU6050_ACCEL_FS_4 0x01
 #define MPU6050_ACCEL_FS_8 0x02
 #define MPU6050_ACCEL_FS_16 0x03
+
+#define ACCEL_SCALE_MODIFIER_2G 16384.0
+#define ACCEL_SCALE_MODIFIER_4G 8192.0
+#define ACCEL_SCALE_MODIFIER_8G 4096.0
+#define ACCEL_SCALE_MODIFIER_16G 2048.0
 
 #define MPU6050_DHPF_RESET 0x00
 #define MPU6050_DHPF_5 0x01
@@ -421,7 +431,6 @@ THE SOFTWARE.
 #define MPU6050_DMP_MEMORY_BANK_SIZE 256
 #define MPU6050_DMP_MEMORY_CHUNK_SIZE 16
 
-// note: DMP code memory blocks defined at end of header file
 
 /**
  * @brief MPU6050 IMU C++ class
@@ -437,7 +446,7 @@ class MPU6050 {
    * @see MPU6050_ADDRESS_AD0_LOW
    * @see MPU6050_ADDRESS_AD0_HIGH
    */
-  explicit MPU6050(uint8_t address = MPU6050_DEFAULT_ADDRESS);
+  explicit MPU6050(uint8_t address);
 
   /**
    * @brief Constructor without address
@@ -534,7 +543,6 @@ class MPU6050 {
    * external signal connected to the FSYNC pin can be sampled by configuring
    * EXT_SYNC_SET. Signal changes to the FSYNC pin are latched so that short
    * strobes may be captured. The latched FSYNC signal will be sampled at the
-   * Sampling Rate, as defined in register 25. After sampling, the latch will
    * reset to the current FSYNC signal state.
    *
    * The sampled value will be reported in place of the least significant bit in
@@ -631,6 +639,15 @@ class MPU6050 {
    * @see MPU6050_GCONFIG_FS_SEL_LENGTH
    */
   uint8_t getFullScaleGyroRange();
+
+  /**
+   * @brief Get the Gyro LSB Sensitivity value
+   * 
+   * @return float LSB per degrees/s value
+   * @see MPU6050_GYRO_FS_250
+   * @see MPU6050_RA_GYRO_CONFIG
+   */
+  float getGyroLSBSensitivity();
 
   /** 
    * @brief Set full-scale gyroscope range.
@@ -760,6 +777,15 @@ class MPU6050 {
    * @see MPU6050_ACONFIG_AFS_SEL_LENGTH
    */
   uint8_t getFullScaleAccelRange();
+
+  /**
+   * @brief Get the Accel LSB Sensitivity value
+   * 
+   * @return float LSB/g value
+   * @see MPU6050_ACCEL_FS_2
+   * @see MPU6050_RA_ACCEL_CONFIG
+   */
+  float getAccelLSBSensitivity();
 
   /** Set full-scale accelerometer range.
    * @param range New full-scale accelerometer range setting
@@ -1305,7 +1331,6 @@ class MPU6050 {
    * The MPU-6050 supports a total of five slaves, but Slave 4 has unique
    * characteristics, and so it has its own functions (getSlave4* and setSlave4*).
    *
-   * I2C data transactions are performed at the Sample Rate, as defined in
    * Register 25. The user is responsible for ensuring that I2C data transactions
    * to and from each enabled Slave can be completed within a single period of the
    * Sample Rate.
@@ -2147,8 +2172,8 @@ class MPU6050 {
    * @see getRotation()
    * @see MPU6050_RA_ACCEL_XOUT_H
    */
-  void getMotion9(int16_t *ax, int16_t *ay, int16_t *az, int16_t *gx, int16_t *gy, int16_t *gz, int16_t *mx,
-                  int16_t *my, int16_t *mz);
+  void getMotion9(float *ax, float *ay, float *az, float *gx, float *gy, float *gz, float *mx,
+                  float *my, float *mz);
 
   /** 
    * @brief Get raw 6-axis motion sensor readings (accel/gyro).
@@ -2164,14 +2189,13 @@ class MPU6050 {
    * @see getRotation()
    * @see MPU6050_RA_ACCEL_XOUT_H
    */
-  void getMotion6(int16_t *ax, int16_t *ay, int16_t *az, int16_t *gx, int16_t *gy, int16_t *gz);
+  void getMotion6(float *ax, float *ay, float *az, float *gx, float *gy, float *gz);
 
   /** 
    * @brief Get 3-axis accelerometer readings.
    * 
    * These registers store the most recent accelerometer measurements.
    * Accelerometer measurements are written to these registers at the Sample Rate
-   * as defined in Register 25.
    *
    * The accelerometer measurement registers, along with the temperature
    * measurement registers, gyroscope measurement registers, and external sensor
@@ -2186,7 +2210,6 @@ class MPU6050 {
    * are not used, the user is responsible for ensuring a set of single byte reads
    * correspond to a single sampling instant by checking the Data Ready interrupt.
    *
-   * Each 16-bit accelerometer measurement has a full scale defined in ACCEL_FS
    * (Register 28). For each full scale setting, the accelerometers' sensitivity
    * per LSB in ACCEL_xOUT is shown in the table below:
    *
@@ -2204,7 +2227,7 @@ class MPU6050 {
    * @param z 16-bit signed integer container for Z-axis acceleration
    * @see MPU6050_RA_GYRO_XOUT_H
    */
-  void getAcceleration(int16_t *x, int16_t *y, int16_t *z);
+  void getAcceleration(float *x, float *y, float *z);
 
   /** 
    * @brief Get X-axis accelerometer reading.
@@ -2213,7 +2236,7 @@ class MPU6050 {
    * @see getMotion6()
    * @see MPU6050_RA_ACCEL_XOUT_H
    */
-  int16_t getAccelerationX();
+  float getAccelerationX();
 
   /** 
    * @brief Get Y-axis accelerometer reading.
@@ -2222,7 +2245,7 @@ class MPU6050 {
    * @see getMotion6()
    * @see MPU6050_RA_ACCEL_YOUT_H
    */
-  int16_t getAccelerationY();
+  float getAccelerationY();
 
   /** 
    * @brief Get Z-axis accelerometer reading.
@@ -2231,7 +2254,7 @@ class MPU6050 {
    * @see getMotion6()
    * @see MPU6050_RA_ACCEL_ZOUT_H
    */
-  int16_t getAccelerationZ();
+  float getAccelerationZ();
 
   /** 
    * @brief Get current internal temperature.
@@ -2239,7 +2262,7 @@ class MPU6050 {
    * @return Temperature reading in 16-bit 2's complement format
    * @see MPU6050_RA_TEMP_OUT_H
    */
-  int16_t getTemperature();
+  float getTemperature();
 
   /** 
    * @brief Get 3-axis gyroscope readings.
@@ -2256,7 +2279,6 @@ class MPU6050 {
    * are not used, the user is responsible for ensuring a set of single byte reads
    * correspond to a single sampling instant by checking the Data Ready interrupt.
    *
-   * Each 16-bit gyroscope measurement has a full scale defined in FS_SEL
    * (Register 27). For each full scale setting, the gyroscopes' sensitivity per
    * LSB in GYRO_xOUT is shown in the table below:
    *
@@ -2275,7 +2297,7 @@ class MPU6050 {
    * @see getMotion6()
    * @see MPU6050_RA_GYRO_XOUT_H
    */
-  void getRotation(int16_t *x, int16_t *y, int16_t *z);
+  void getRotation(float *x, float *y, float *z);
 
   /** 
    * @brief Get X-axis gyroscope reading.
@@ -2284,7 +2306,7 @@ class MPU6050 {
    * @see getMotion6()
    * @see MPU6050_RA_GYRO_XOUT_H
    */
-  int16_t getRotationX();
+  float getRotationX();
 
   /** 
    * @brief Get Y-axis gyroscope reading.
@@ -2293,7 +2315,7 @@ class MPU6050 {
    * @see getMotion6()
    * @see MPU6050_RA_GYRO_YOUT_H
    */
-  int16_t getRotationY();
+  float getRotationY();
 
   /** 
    * @brief Get Z-axis gyroscope reading.
@@ -2302,7 +2324,7 @@ class MPU6050 {
    * @see getMotion6()
    * @see MPU6050_RA_GYRO_ZOUT_H
    */
-  int16_t getRotationZ();
+  float getRotationZ();
 
   /** 
    * @brief Read single byte from external sensor data register.
@@ -2312,7 +2334,6 @@ class MPU6050 {
    * I2C_SLV4_DI (Register 53).
    *
    * External sensor data is written to these registers at the Sample Rate as
-   * defined in Register 25. This access rate can be reduced by using the Slave
    * Delay Enable registers (Register 103).
    *
    * External sensor data registers, along with the gyroscope measurement
@@ -2331,7 +2352,6 @@ class MPU6050 {
    * I2C_SLV0_CTRL, I2C_SLV1_CTRL, I2C_SLV2_CTRL, and I2C_SLV3_CTRL (Registers 39,
    * 42, 45, and 48). When more than zero bytes are read (I2C_SLVx_LEN > 0) from
    * an enabled slave (I2C_SLVx_EN = 1), the slave is read at the Sample Rate (as
-   * defined in Register 25) or delayed rate (if specified in Register 52 and
    * 103). During each Sample cycle, slave reads are performed in order of Slave
    * number. If all slaves are enabled with more than zero bytes to be read, the
    * order will be Slave 0, followed by Slave 1, Slave 2, and Slave 3.
@@ -3445,11 +3465,15 @@ class MPU6050 {
  private:
   uint8_t mpu_addr_;
   I2CDevice mpu_device_;
-  uint8_t buffer[14];
+
+  float accel_lsb_sensitivity_;
+  float gyro_lsb_sensitivity_;
+
 #if defined(MPU6050_INCLUDE_DMP_MOTIONAPPS20) or defined(MPU6050_INCLUDE_DMP_MOTIONAPPS41)
   uint8_t *dmpPacketBuffer;
   uint16_t dmpPacketSize;
 #endif
+
 };
 
 #endif  // MPU6050_DRIVER_MPU6050_HPP_

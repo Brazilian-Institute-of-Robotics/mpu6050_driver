@@ -44,9 +44,15 @@ MPU6050::MPU6050() {}
 
 void MPU6050::initialize(const std::string& i2c_bus_uri) {
   mpu_device_.openI2CBus(i2c_bus_uri, mpu_addr_);
+
   setClockSource(MPU6050_CLOCK_PLL_XGYRO);
+
   setFullScaleGyroRange(MPU6050_GYRO_FS_250);
   setFullScaleAccelRange(MPU6050_ACCEL_FS_2);
+
+  accel_lsb_sensitivity_ = this->getAccelLSBSensitivity();
+  gyro_lsb_sensitivity_ = this->getGyroLSBSensitivity();
+
   setSleepEnabled(false);  // thanks to Jack Elston for pointing this one out!
 }
 
@@ -94,8 +100,26 @@ uint8_t MPU6050::getFullScaleGyroRange() {
   return mpu_device_.readByteBits(MPU6050_RA_GYRO_CONFIG, MPU6050_GCONFIG_FS_SEL_BIT, MPU6050_GCONFIG_FS_SEL_LENGTH);
 }
 
+float MPU6050::getGyroLSBSensitivity() {
+  uint8_t fs_sel_value = this->getFullScaleGyroRange();
+
+  switch (fs_sel_value) {
+    case MPU6050_GYRO_FS_250:
+      return GYRO_SCALE_MODIFIER_250DEG;
+    case MPU6050_GYRO_FS_500:
+      return GYRO_SCALE_MODIFIER_500DEG;
+    case MPU6050_GYRO_FS_1000:
+      return GYRO_SCALE_MODIFIER_1000DEG;
+    case MPU6050_GYRO_FS_2000:
+      return GYRO_SCALE_MODIFIER_2000DEG;
+    default:
+      throw("Invalid gyro full scale mode received");
+  }
+}
+
 void MPU6050::setFullScaleGyroRange(uint8_t range) {
   mpu_device_.setByteBits(MPU6050_RA_GYRO_CONFIG, MPU6050_GCONFIG_FS_SEL_BIT, MPU6050_GCONFIG_FS_SEL_LENGTH, range);
+  gyro_lsb_sensitivity_ = this->getGyroLSBSensitivity();
 }
 
 uint8_t MPU6050::getAccelXSelfTestFactoryTrim() {
@@ -158,8 +182,26 @@ uint8_t MPU6050::getFullScaleAccelRange() {
   return mpu_device_.readByteBits(MPU6050_RA_ACCEL_CONFIG, MPU6050_ACONFIG_AFS_SEL_BIT, MPU6050_ACONFIG_AFS_SEL_LENGTH);
 }
 
+float MPU6050::getAccelLSBSensitivity() {
+  uint8_t afs_sel_value = this->getFullScaleAccelRange();
+
+  switch (afs_sel_value) {
+    case MPU6050_ACCEL_FS_2:
+      return ACCEL_SCALE_MODIFIER_2G;
+    case MPU6050_ACCEL_FS_4:
+      return ACCEL_SCALE_MODIFIER_4G;
+    case MPU6050_ACCEL_FS_8:
+      return ACCEL_SCALE_MODIFIER_8G;
+    case MPU6050_ACCEL_FS_16:
+      return ACCEL_SCALE_MODIFIER_16G;
+    default:
+      throw("Invalid accelerometer full scale mode received");
+  }
+}
+
 void MPU6050::setFullScaleAccelRange(uint8_t range) {
   mpu_device_.setByteBits(MPU6050_RA_ACCEL_CONFIG, MPU6050_ACONFIG_AFS_SEL_BIT, MPU6050_ACONFIG_AFS_SEL_LENGTH, range);
+  accel_lsb_sensitivity_ = this->getFullScaleAccelRange();
 }
 
 uint8_t MPU6050::getDHPFMode() {
@@ -634,66 +676,83 @@ bool MPU6050::getIntDataReadyStatus() {
   return mpu_device_.readByteBit(MPU6050_RA_INT_STATUS, MPU6050_INTERRUPT_DATA_RDY_BIT);
 }
 
-void MPU6050::getMotion9(int16_t* ax, int16_t* ay, int16_t* az,
-                         int16_t* gx, int16_t* gy, int16_t* gz,
-                         int16_t* mx, int16_t* my, int16_t* mz) {
+void MPU6050::getMotion9(float* ax, float* ay, float* az,
+                         float* gx, float* gy, float* gz,
+                         float* mx, float* my, float* mz) {
   getMotion6(ax, ay, az, gx, gy, gz);
   // TODO(somebody): magnetometer integration
 }
 
-void MPU6050::getMotion6(int16_t* ax, int16_t* ay, int16_t* az, int16_t* gx, int16_t* gy, int16_t* gz) {
+void MPU6050::getMotion6(float* ax, float* ay, float* az, float* gx, float* gy, float* gz) {
   uint8_t buffer[14];
   mpu_device_.readBytes(MPU6050_RA_ACCEL_XOUT_H, sizeof(buffer), buffer);
   *ax = (((int16_t)buffer[0]) << 8) | buffer[1];
   *ay = (((int16_t)buffer[2]) << 8) | buffer[3];
   *az = (((int16_t)buffer[4]) << 8) | buffer[5];
+
   *gx = (((int16_t)buffer[8]) << 8) | buffer[9];
   *gy = (((int16_t)buffer[10]) << 8) | buffer[11];
   *gz = (((int16_t)buffer[12]) << 8) | buffer[13];
+
+  *ax /= accel_lsb_sensitivity_;
+  *ay /= accel_lsb_sensitivity_;
+  *az /= accel_lsb_sensitivity_;
+
+  *gx /= gyro_lsb_sensitivity_;
+  *gy /= gyro_lsb_sensitivity_;
+  *gz /= gyro_lsb_sensitivity_;
 }
 
-void MPU6050::getAcceleration(int16_t* x, int16_t* y, int16_t* z) {
+void MPU6050::getAcceleration(float* x, float* y, float* z) {
   uint8_t buffer[6];
   mpu_device_.readBytes(MPU6050_RA_ACCEL_XOUT_H, sizeof(buffer), buffer);
   *x = (((int16_t)buffer[0]) << 8) | buffer[1];
   *y = (((int16_t)buffer[2]) << 8) | buffer[3];
   *z = (((int16_t)buffer[4]) << 8) | buffer[5];
+
+  *x /= accel_lsb_sensitivity_;
+  *y /= accel_lsb_sensitivity_;
+  *z /= accel_lsb_sensitivity_;
 }
 
-int16_t MPU6050::getAccelerationX() {
-  return mpu_device_.readWord(MPU6050_RA_ACCEL_XOUT_H);
+float MPU6050:: getAccelerationX() {
+  return mpu_device_.readWord(MPU6050_RA_ACCEL_XOUT_H) / accel_lsb_sensitivity_;
 }
 
-int16_t MPU6050::getAccelerationY() {
-  return mpu_device_.readWord(MPU6050_RA_ACCEL_YOUT_H);
+float MPU6050::getAccelerationY() {
+  return mpu_device_.readWord(MPU6050_RA_ACCEL_YOUT_H) / accel_lsb_sensitivity_;
 }
 
-int16_t MPU6050::getAccelerationZ() {
-  return mpu_device_.readWord(MPU6050_RA_ACCEL_ZOUT_H);
+float MPU6050::getAccelerationZ() {
+  return mpu_device_.readWord(MPU6050_RA_ACCEL_ZOUT_H) / accel_lsb_sensitivity_;
 }
 
-int16_t MPU6050::getTemperature() {
-  return mpu_device_.readWord(MPU6050_RA_TEMP_OUT_H);
+float MPU6050::getTemperature() {
+  return (static_cast<float>(mpu_device_.readWord(MPU6050_RA_TEMP_OUT_H)) / 340.0) + 36.5;
 }
 
-void MPU6050::getRotation(int16_t* x, int16_t* y, int16_t* z) {
+void MPU6050::getRotation(float* x, float* y, float* z) {
   uint8_t buffer[6];
   mpu_device_.readBytes(MPU6050_RA_GYRO_XOUT_H, sizeof(buffer), buffer);
   *x = (((int16_t)buffer[0]) << 8) | buffer[1];
   *y = (((int16_t)buffer[2]) << 8) | buffer[3];
   *z = (((int16_t)buffer[4]) << 8) | buffer[5];
+
+  *x /= gyro_lsb_sensitivity_;
+  *y /= gyro_lsb_sensitivity_;
+  *z /= gyro_lsb_sensitivity_;
 }
 
-int16_t MPU6050::getRotationX() {
-  return mpu_device_.readWord(MPU6050_RA_GYRO_XOUT_H);
+float MPU6050::getRotationX() {
+  return mpu_device_.readWord(MPU6050_RA_GYRO_XOUT_H) / gyro_lsb_sensitivity_;
 }
 
-int16_t MPU6050::getRotationY() {
-  return mpu_device_.readWord(MPU6050_RA_GYRO_YOUT_H);
+float MPU6050::getRotationY() {
+  return mpu_device_.readWord(MPU6050_RA_GYRO_YOUT_H) / gyro_lsb_sensitivity_;
 }
 
-int16_t MPU6050::getRotationZ() {
-  return mpu_device_.readWord(MPU6050_RA_GYRO_ZOUT_H);
+float MPU6050::getRotationZ() {
+  return mpu_device_.readWord(MPU6050_RA_GYRO_ZOUT_H) / gyro_lsb_sensitivity_;
 }
 
 uint8_t MPU6050::getExternalSensorByte(int position) {
