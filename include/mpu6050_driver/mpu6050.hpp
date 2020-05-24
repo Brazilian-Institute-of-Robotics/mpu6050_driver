@@ -431,6 +431,35 @@ THE SOFTWARE.
 #define MPU6050_DMP_MEMORY_BANK_SIZE 256
 #define MPU6050_DMP_MEMORY_CHUNK_SIZE 16
 
+/**
+ * @brief Struct to hold Accelerometer values of the three axes.
+ * 
+ */
+struct AccelData {
+  float x;
+  float y;
+  float z;
+};
+
+/**
+ * @brief Struct to hold Gyroscope values of the three axes.
+ * 
+ */
+struct GyroData {
+  float x;
+  float y;
+  float z;
+};
+
+/**
+ * @brief Struct to hold Accelerometer and Gyroscope values of the three axes
+ * 
+ */
+struct IMUData {
+  AccelData accel;
+  GyroData gyro;
+};
+
 
 /**
  * @brief MPU6050 IMU C++ class
@@ -2176,20 +2205,14 @@ class MPU6050 {
                   float *my, float *mz);
 
   /** 
-   * @brief Get raw 6-axis motion sensor readings (accel/gyro).
+   * @brief Get 6-axis motion sensor readings (accel/gyro).
    * 
-   * Retrieves all currently available motion sensor values.
-   * @param ax 16-bit signed integer container for accelerometer X-axis value
-   * @param ay 16-bit signed integer container for accelerometer Y-axis value
-   * @param az 16-bit signed integer container for accelerometer Z-axis value
-   * @param gx 16-bit signed integer container for gyroscope X-axis value
-   * @param gy 16-bit signed integer container for gyroscope Y-axis value
-   * @param gz 16-bit signed integer container for gyroscope Z-axis value
-   * @see getAcceleration()
-   * @see getRotation()
+   * @return Linear and angular velocity of the x, y and z axes in m/s² and deg/s respectively
+   * @see AccelData
+   * @see GyroData
    * @see MPU6050_RA_ACCEL_XOUT_H
    */
-  void getMotion6(float *ax, float *ay, float *az, float *gx, float *gy, float *gz);
+  IMUData getMotion6();
 
   /** 
    * @brief Get 3-axis accelerometer readings.
@@ -2222,12 +2245,10 @@ class MPU6050 {
    * 3       | +/- 16g          | 1024 LSB/mg
    * </pre>
    *
-   * @param x 16-bit signed integer container for X-axis acceleration
-   * @param y 16-bit signed integer container for Y-axis acceleration
-   * @param z 16-bit signed integer container for Z-axis acceleration
+   * @return Linear velocity in m/s² of the x, y and z axes
    * @see MPU6050_RA_GYRO_XOUT_H
    */
-  void getAcceleration(float *x, float *y, float *z);
+  AccelData getAcceleration();
 
   /** 
    * @brief Get X-axis accelerometer reading.
@@ -2291,13 +2312,11 @@ class MPU6050 {
    * 3      | +/- 2000 degrees/s | 16.4 LSB/deg/s
    * </pre>
    *
-   * @param x 16-bit signed integer container for X-axis rotation
-   * @param y 16-bit signed integer container for Y-axis rotation
-   * @param z 16-bit signed integer container for Z-axis rotation
+   * @return Angular velocity in deg/s of the x, y and z axes
    * @see getMotion6()
    * @see MPU6050_RA_GYRO_XOUT_H
    */
-  void getRotation(float *x, float *y, float *z);
+  GyroData getRotation();
 
   /** 
    * @brief Get X-axis gyroscope reading.

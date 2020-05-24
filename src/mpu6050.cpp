@@ -676,43 +676,55 @@ bool MPU6050::getIntDataReadyStatus() {
   return mpu_device_.readByteBit(MPU6050_RA_INT_STATUS, MPU6050_INTERRUPT_DATA_RDY_BIT);
 }
 
-void MPU6050::getMotion9(float* ax, float* ay, float* az,
-                         float* gx, float* gy, float* gz,
-                         float* mx, float* my, float* mz) {
-  getMotion6(ax, ay, az, gx, gy, gz);
-  // TODO(somebody): magnetometer integration
+// TODO(somebody): magnetometer integration
+// void MPU6050::getMotion9(float* ax, float* ay, float* az,
+//                          float* gx, float* gy, float* gz,
+//                          float* mx, float* my, float* mz) {
+//   getMotion6(ax, ay, az, gx, gy, gz);
+// }
+
+IMUData MPU6050::getMotion6() {
+  uint16_t buffer[7];
+  int16_t raw_accel_x, raw_accel_y, raw_accel_z, raw_gyro_x, raw_gyro_y, raw_gyro_z;
+  IMUData imu_data;
+
+  mpu_device_.readWords(MPU6050_RA_ACCEL_XOUT_H, 7, buffer);
+
+  raw_accel_x = buffer[0];
+  raw_accel_y = buffer[1];
+  raw_accel_z = buffer[2];
+
+  raw_gyro_x = buffer[4];
+  raw_gyro_y = buffer[5];
+  raw_gyro_z = buffer[6];
+
+  imu_data.accel.x = static_cast<float>(raw_accel_x) / accel_lsb_sensitivity_;
+  imu_data.accel.y = static_cast<float>(raw_accel_y) / accel_lsb_sensitivity_;
+  imu_data.accel.z = static_cast<float>(raw_accel_z) / accel_lsb_sensitivity_;
+
+  imu_data.gyro.x = static_cast<float>(raw_gyro_x) /  gyro_lsb_sensitivity_;
+  imu_data.gyro.y = static_cast<float>(raw_gyro_y) /  gyro_lsb_sensitivity_;
+  imu_data.gyro.z = static_cast<float>(raw_gyro_z) /  gyro_lsb_sensitivity_;
+
+  return imu_data;
 }
 
-void MPU6050::getMotion6(float* ax, float* ay, float* az, float* gx, float* gy, float* gz) {
-  uint8_t buffer[14];
-  mpu_device_.readBytes(MPU6050_RA_ACCEL_XOUT_H, sizeof(buffer), buffer);
-  *ax = (((int16_t)buffer[0]) << 8) | buffer[1];
-  *ay = (((int16_t)buffer[2]) << 8) | buffer[3];
-  *az = (((int16_t)buffer[4]) << 8) | buffer[5];
+AccelData MPU6050::getAcceleration() {
+  uint16_t buffer[3];
+  int16_t raw_accel_x, raw_accel_y, raw_accel_z;
+  AccelData accel_data;
 
-  *gx = (((int16_t)buffer[8]) << 8) | buffer[9];
-  *gy = (((int16_t)buffer[10]) << 8) | buffer[11];
-  *gz = (((int16_t)buffer[12]) << 8) | buffer[13];
+  mpu_device_.readWords(MPU6050_RA_ACCEL_XOUT_H, 3, buffer);
 
-  *ax /= accel_lsb_sensitivity_;
-  *ay /= accel_lsb_sensitivity_;
-  *az /= accel_lsb_sensitivity_;
+  raw_accel_x = buffer[0];
+  raw_accel_y = buffer[1];
+  raw_accel_z = buffer[2];
 
-  *gx /= gyro_lsb_sensitivity_;
-  *gy /= gyro_lsb_sensitivity_;
-  *gz /= gyro_lsb_sensitivity_;
-}
+  accel_data.x = static_cast<float>(raw_accel_x) / accel_lsb_sensitivity_;
+  accel_data.y = static_cast<float>(raw_accel_y) / accel_lsb_sensitivity_;
+  accel_data.z = static_cast<float>(raw_accel_z) / accel_lsb_sensitivity_;
 
-void MPU6050::getAcceleration(float* x, float* y, float* z) {
-  uint8_t buffer[6];
-  mpu_device_.readBytes(MPU6050_RA_ACCEL_XOUT_H, sizeof(buffer), buffer);
-  *x = (((int16_t)buffer[0]) << 8) | buffer[1];
-  *y = (((int16_t)buffer[2]) << 8) | buffer[3];
-  *z = (((int16_t)buffer[4]) << 8) | buffer[5];
-
-  *x /= accel_lsb_sensitivity_;
-  *y /= accel_lsb_sensitivity_;
-  *z /= accel_lsb_sensitivity_;
+  return accel_data;
 }
 
 float MPU6050:: getAccelerationX() {
@@ -728,19 +740,26 @@ float MPU6050::getAccelerationZ() {
 }
 
 float MPU6050::getTemperature() {
-  return (static_cast<float>(mpu_device_.readWord(MPU6050_RA_TEMP_OUT_H)) / 340.0) + 36.5;
+  int16_t raw_temp = (int16_t)mpu_device_.readWord(MPU6050_RA_TEMP_OUT_H);
+  return (static_cast<float>(raw_temp) / 340.0) + 36.5;
 }
 
-void MPU6050::getRotation(float* x, float* y, float* z) {
-  uint8_t buffer[6];
-  mpu_device_.readBytes(MPU6050_RA_GYRO_XOUT_H, sizeof(buffer), buffer);
-  *x = (((int16_t)buffer[0]) << 8) | buffer[1];
-  *y = (((int16_t)buffer[2]) << 8) | buffer[3];
-  *z = (((int16_t)buffer[4]) << 8) | buffer[5];
+GyroData MPU6050::getRotation() {
+  uint16_t buffer[3];
+  int16_t raw_gyro_x, raw_gyro_y, raw_gyro_z;
+  GyroData gyro_data;
 
-  *x /= gyro_lsb_sensitivity_;
-  *y /= gyro_lsb_sensitivity_;
-  *z /= gyro_lsb_sensitivity_;
+  mpu_device_.readWords(MPU6050_RA_GYRO_XOUT_H, 3, buffer);
+
+  raw_gyro_x = buffer[0];
+  raw_gyro_y = buffer[1];
+  raw_gyro_z = buffer[2];
+
+  gyro_data.x = static_cast<float>(raw_gyro_x) / gyro_lsb_sensitivity_;
+  gyro_data.y = static_cast<float>(raw_gyro_y) / gyro_lsb_sensitivity_;
+  gyro_data.z = static_cast<float>(raw_gyro_z) / gyro_lsb_sensitivity_;
+
+  return gyro_data;
 }
 
 float MPU6050::getRotationX() {
