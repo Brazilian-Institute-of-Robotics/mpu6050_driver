@@ -431,33 +431,38 @@ THE SOFTWARE.
 #define MPU6050_DMP_MEMORY_BANK_SIZE 256
 #define MPU6050_DMP_MEMORY_CHUNK_SIZE 16
 
+namespace mpu6050_driver {
+
 /**
  * @brief Struct to hold Accelerometer values of the three axes.
  * 
  */
+template <typename T>
 struct AccelData {
-  float x;
-  float y;
-  float z;
+  T x;
+  T y;
+  T z;
 };
 
 /**
  * @brief Struct to hold Gyroscope values of the three axes.
  * 
  */
+template <typename T>
 struct GyroData {
-  float x;
-  float y;
-  float z;
+  T x;
+  T y;
+  T z;
 };
 
 /**
  * @brief Struct to hold Accelerometer and Gyroscope values of the three axes
  * 
  */
+template <typename T>
 struct IMUData {
-  AccelData accel;
-  GyroData gyro;
+  AccelData<T> accel;
+  GyroData<T> gyro;
 };
 
 
@@ -2204,6 +2209,13 @@ class MPU6050 {
   void getMotion9(float *ax, float *ay, float *az, float *gx, float *gy, float *gz, float *mx,
                   float *my, float *mz);
 
+  /**
+   * @brief Get 6-axis motion sensor readings (accel/gyro).
+   * 
+   * @return Raw values of 3-axis acceloremeter and gyroscope readings
+   */
+  IMUData<int16_t> getRawMotion6();
+
   /** 
    * @brief Get 6-axis motion sensor readings (accel/gyro).
    * 
@@ -2212,10 +2224,10 @@ class MPU6050 {
    * @see GyroData
    * @see MPU6050_RA_ACCEL_XOUT_H
    */
-  IMUData getMotion6();
+  IMUData<float> getMotion6();
 
   /** 
-   * @brief Get 3-axis accelerometer readings.
+   * @brief Get 3-axis raw accelerometer readings.
    * 
    * These registers store the most recent accelerometer measurements.
    * Accelerometer measurements are written to these registers at the Sample Rate
@@ -2245,10 +2257,18 @@ class MPU6050 {
    * 3       | +/- 16g          | 1024 LSB/mg
    * </pre>
    *
-   * @return Linear velocity in m/s² of the x, y and z axes
+   * @return Raw values of 3-axis acceloremeter readings
+   * @see getAcceleration
    * @see MPU6050_RA_GYRO_XOUT_H
    */
-  AccelData getAcceleration();
+  AccelData<int16_t> getRawAcceleration();
+
+  /**
+   * @brief Get 3-axis acceloremeter readings
+   * 
+   * @return Linear velocity in m/s² of the x, y and z axes 
+   */
+  AccelData<float> getAcceleration();
 
   /** 
    * @brief Get X-axis accelerometer reading.
@@ -2312,11 +2332,18 @@ class MPU6050 {
    * 3      | +/- 2000 degrees/s | 16.4 LSB/deg/s
    * </pre>
    *
-   * @return Angular velocity in deg/s of the x, y and z axes
-   * @see getMotion6()
+   * @return Raw values of 3-axis gyroscope readings
+   * @see getRotation()
    * @see MPU6050_RA_GYRO_XOUT_H
    */
-  GyroData getRotation();
+  GyroData<int16_t> getRawRotation();
+
+  /**
+   * @brief Get 3-axis gyroscope readings.
+   * 
+   * @return Angular velocity in deg/s of the x, y and z axes 
+   */
+  GyroData<float> getRotation();
 
   /** 
    * @brief Get X-axis gyroscope reading.
@@ -3492,7 +3519,8 @@ class MPU6050 {
   uint8_t *dmpPacketBuffer;
   uint16_t dmpPacketSize;
 #endif
-
 };
+
+}  // namespace mpu6050_driver
 
 #endif  // MPU6050_DRIVER_MPU6050_HPP_
