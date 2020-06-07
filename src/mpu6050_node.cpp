@@ -26,6 +26,8 @@ SOFTWARE.
 #include "mpu6050_driver/mpu6050_node.hpp"
 #include "sensor_msgs/Imu.h"
 
+namespace mpu6050_driver {
+
 static const float gravity_value = 9.81;
 
 MPU6050Node::MPU6050Node() {}
@@ -55,7 +57,7 @@ void MPU6050Node::run() {
 
 void MPU6050Node::publishMPUData() {
   sensor_msgs::Imu imu_data;
-  IMUData mpu_data;
+  IMUData<float> mpu_data;
 
   mpu_data = mpu6050_.getMotion6();
 
@@ -80,3 +82,5 @@ void MPU6050Node::loadParameters() {
   getParameterHelper<float>(ph, "pub_rate", &pub_rate_, 30);
   getParameterHelper<std::string>(ph, "frame_id", &imu_frame_id_, "imu");
 }
+
+}  // namespace mpu6050_driver

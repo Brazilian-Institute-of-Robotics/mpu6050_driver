@@ -8,7 +8,7 @@ int main(int argc, char **argv) {
   ros::init(argc, argv, "mpu6050_node");
   ros::NodeHandle nh;
 
-  MPU6050Node mpu_node;
+  mpu6050_driver::MPU6050Node mpu_node;
 
   try {
     mpu_node.init();
