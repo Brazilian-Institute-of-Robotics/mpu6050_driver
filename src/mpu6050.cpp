@@ -1209,6 +1209,28 @@ void MPU6050::setZGyroOffset(int16_t offset) {
   mpu_device_.writeWord(MPU6050_RA_ZG_OFFS_USRH, offset);
 }
 
+IMUData<int16_t> MPU6050::getOffsets() {
+  IMUData<int16_t> offsets;
+
+  offsets.accel.x = this->getXAccelOffset();
+  offsets.accel.y = this->getYAccelOffset();
+  offsets.accel.z = this->getZAccelOffset();
+  offsets.gyro.x = this->getXGyroOffset();
+  offsets.gyro.y = this->getYGyroOffset();
+  offsets.gyro.z = this->getZGyroOffset();
+
+  return offsets;
+}
+
+void MPU6050::resetOffsets() {
+  this->setXAccelOffset(0);
+  this->setYAccelOffset(0);
+  this->setZAccelOffset(0);
+  this->setXGyroOffset(0);
+  this->setYGyroOffset(0);
+  this->setZGyroOffset(0);
+}
+
 // INT_ENABLE register (DMP functions)
 
 bool MPU6050::getIntPLLReadyEnabled() {

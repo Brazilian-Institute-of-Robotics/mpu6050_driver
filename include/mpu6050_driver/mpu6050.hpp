@@ -3254,6 +3254,9 @@ class MPU6050 {
   int16_t getZGyroOffset();
   void setZGyroOffset(int16_t offset);
 
+  IMUData<int16_t> getOffsets();
+  void resetOffsets();
+
   // INT_ENABLE register (DMP functions)
   bool getIntPLLReadyEnabled();
   void setIntPLLReadyEnabled(bool enabled);
