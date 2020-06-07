@@ -1,0 +1,8 @@
+<?xml version="1.0"?>
+<launch>
+ 
+  <node name="mpu_calibration_node" pkg="mpu6050_driver" type="mpu6050_calibration_node" output="screen">
+    <rosparam file="$(find mpu6050_driver)/config/mpu_settings.yaml" command="load"/>
+  </node>
+
+</launch>

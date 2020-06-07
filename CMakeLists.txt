@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 2.8.3)
 project(mpu6050_driver)
 
 add_compile_options(-std=c++11)
-add_definitions(-Wall -Werror)
+# add_definitions(-Wall -Werror)
 
 set(CATKIN_DEPS 
   # diagnostic_msgs
@@ -12,26 +12,44 @@ set(CATKIN_DEPS
 )
 
 find_package(catkin REQUIRED COMPONENTS ${CATKIN_DEPS})
-# find_package(Boost REQUIRED COMPONENTS system)
+find_package(Eigen3 REQUIRED)
+find_package(cmake_modules REQUIRED)
 
 catkin_package(
  INCLUDE_DIRS include
  CATKIN_DEPENDS ${CATKIN_DEPS}
+ DEPENDS Eigen
 )
 
 include_directories(
   include
   ${catkin_INCLUDE_DIRS}
+  ${Eigen3_INCLUDE_DIRS}
+)
+
+set(MPU6050_NODE_LIB mpu6050_node_lib)
+add_library(${MPU6050_NODE_LIB}
+  src/mpu6050_node.cpp
+  src/mpu6050.cpp
 )
 
 add_executable(mpu6050_node 
   src/main.cpp
-  src/mpu6050.cpp
-  src/mpu6050_node.cpp
 )
 
 target_link_libraries(mpu6050_node
   ${catkin_LIBRARIES}
+  ${MPU6050_NODE_LIB}
+)
+
+add_executable(mpu6050_calibration_node 
+  src/main_calibration.cpp
+  src/mpu6050_calibration_node.cpp
+)
+
+target_link_libraries(mpu6050_calibration_node
+  ${catkin_LIBRARIES}
+  ${MPU6050_NODE_LIB}
 )
 
 # install(TARGETS ${PROJECT_NAME}_node

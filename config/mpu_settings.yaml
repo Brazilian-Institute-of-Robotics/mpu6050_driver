@@ -9,3 +9,7 @@ pub_rate: 10
 
 # Frame if of IMU message (default: "imu")
 frame_id: "imu"
+
+# PID constants used in calibration procedure
+ki: 0.2
+kp: 0.1

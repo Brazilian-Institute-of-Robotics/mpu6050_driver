@@ -32,6 +32,8 @@ SOFTWARE.
 #include "ros/ros.h"
 #include "mpu6050_driver/mpu6050.hpp"
 
+namespace mpu6050_driver {
+
 class MPU6050Node {
  public:
   MPU6050Node();
@@ -61,7 +63,7 @@ class MPU6050Node {
     }
   }
 
- private:
+ protected:
   void loadParameters();
   ros::NodeHandle nh_;
   ros::Publisher mpu_data_pub_;
@@ -74,5 +76,7 @@ class MPU6050Node {
   float pub_rate_;
   std::string imu_frame_id_;
 };
+
+}  // namespace mpu6050_driver
 
 #endif  // MPU6050_DRIVER_MPU6050_NODE_HPP_
