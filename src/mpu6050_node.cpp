@@ -30,7 +30,8 @@ namespace mpu6050_driver {
 
 static const float gravity_value = 9.81;
 
-MPU6050Node::MPU6050Node() {}
+MPU6050Node::MPU6050Node()
+  : axes_offsets_(6) {}
 
 void MPU6050Node::init() {
   mpu_data_pub_ = nh_.advertise<sensor_msgs::Imu>("imu", 1);
@@ -41,6 +42,7 @@ void MPU6050Node::init() {
   mpu6050_.initialize(i2c_bus_uri_);
   mpu6050_.setDLPFMode(static_cast<uint8_t>(4));
   mpu6050_.setIntDataReadyEnabled(true);
+  this->setMPUOffsets();
 
   ROS_INFO("MPU6050 Node has started");
 }
@@ -81,6 +83,16 @@ void MPU6050Node::loadParameters() {
   getParameterHelper<int>(ph, "mpu_address", &mpu6050_addr_, 0x68);
   getParameterHelper<float>(ph, "pub_rate", &pub_rate_, 30);
   getParameterHelper<std::string>(ph, "frame_id", &imu_frame_id_, "imu");
+  ph.param<std::vector<int>>("axes_offsets", axes_offsets_, std::vector<int>(6, 0));
+}
+
+void MPU6050Node::setMPUOffsets() {
+  mpu6050_.setXAccelOffset(axes_offsets_[0]);
+  mpu6050_.setYAccelOffset(axes_offsets_[1]);
+  mpu6050_.setZAccelOffset(axes_offsets_[2]);
+  mpu6050_.setXGyroOffset(axes_offsets_[3]);
+  mpu6050_.setYGyroOffset(axes_offsets_[4]);
+  mpu6050_.setZGyroOffset(axes_offsets_[5]);
 }
 
 }  // namespace mpu6050_driver

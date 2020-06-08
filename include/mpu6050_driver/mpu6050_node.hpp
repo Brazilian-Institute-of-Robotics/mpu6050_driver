@@ -28,6 +28,7 @@ SOFTWARE.
 
 #include <cstdint>
 #include <string>
+#include <vector>
 
 #include "ros/ros.h"
 #include "mpu6050_driver/mpu6050.hpp"
@@ -65,6 +66,7 @@ class MPU6050Node {
 
  protected:
   void loadParameters();
+  void setMPUOffsets();
   ros::NodeHandle nh_;
   ros::Publisher mpu_data_pub_;
 
@@ -75,6 +77,7 @@ class MPU6050Node {
 
   float pub_rate_;
   std::string imu_frame_id_;
+  std::vector<int> axes_offsets_;
 };
 
 }  // namespace mpu6050_driver

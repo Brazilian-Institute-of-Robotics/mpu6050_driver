@@ -48,18 +48,7 @@ void MPU6050CalibrationNode::init() {
   MPU6050Node::init();
   this->loadParameters();
 
-  /* Initial random values to help calibration convergence */
-  mpu6050_.setXAccelOffset(100);
-  mpu6050_.setYAccelOffset(100);
-  mpu6050_.setZAccelOffset(100);
-  mpu6050_.setXGyroOffset(100);
-  mpu6050_.setYGyroOffset(100);
-  mpu6050_.setZGyroOffset(100);
-
   i_term_matrix_ = Eigen::Matrix<float, 3, 2>::Zero();
-  p_term_matrix_ = Eigen::Matrix<float, 3, 2>::Zero();
-  error_matrix_ = Eigen::Matrix<float, 3, 2>::Zero();
-  offset_matrix_ = Eigen::Matrix<float, 3, 2>::Zero();
 
   imu_offsets_pub_ = nh_.advertise<sensor_msgs::Imu>("imu_offsets", 1);
 
@@ -101,9 +90,9 @@ void MPU6050CalibrationNode::publishOffsets() {
   imu_offsets_msg.linear_acceleration.y = offset_matrix_(1, 0);
   imu_offsets_msg.linear_acceleration.z = offset_matrix_(2, 0);
 
-  imu_offsets_msg.angular_velocity.x =  offset_matrix_(0, 1);
-  imu_offsets_msg.angular_velocity.y =  offset_matrix_(1, 1);
-  imu_offsets_msg.angular_velocity.z =  offset_matrix_(2, 1);
+  imu_offsets_msg.angular_velocity.x = offset_matrix_(0, 1);
+  imu_offsets_msg.angular_velocity.y = offset_matrix_(1, 1);
+  imu_offsets_msg.angular_velocity.z = offset_matrix_(2, 1);
 
   imu_offsets_msg.header.frame_id = imu_frame_id_;
   imu_offsets_msg.header.stamp = ros::Time::now();

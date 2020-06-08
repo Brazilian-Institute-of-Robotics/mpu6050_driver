@@ -13,3 +13,7 @@ frame_id: "imu"
 # PID constants used in calibration procedure
 ki: 0.2
 kp: 0.1
+
+# Offsets to fix wrong values caused by misalignment
+# Sequence is (ax, ay, az, gx, gy, gz)
+axes_offsets: [-1970, 78, 1203, 81, -13, 9]
