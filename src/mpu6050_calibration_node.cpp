@@ -42,6 +42,7 @@ void MPU6050CalibrationNode::loadParameters() {
   ros::NodeHandle ph("~");
   this->getParameterHelper<float>(ph, "kp", &kp_, 0.1);
   this->getParameterHelper<float>(ph, "ki", &ki_, 0.1);
+  this->getParameterHelper<float>(ph, "delta", &delta_, 0.5);
 }
 
 void MPU6050CalibrationNode::init() {
@@ -100,6 +101,20 @@ void MPU6050CalibrationNode::publishOffsets() {
   imu_offsets_pub_.publish(imu_offsets_msg);
 }
 
+bool MPU6050CalibrationNode::isCalibrationFinished() {
+  return error_matrix_.isApprox(Eigen::Matrix<float, 3, 2>::Zero(), delta_) ? true : false;
+}
+
+void MPU6050CalibrationNode::printOffsets() {
+  ROS_INFO("Final offset of Accel X axis = %d", static_cast<int16_t>(offset_matrix_(0, 0)));
+  ROS_INFO("Final offset of Accel Y axis = %d", static_cast<int16_t>(offset_matrix_(1, 0)));
+  ROS_INFO("Final offset of Accel Z axis = %d", static_cast<int16_t>(offset_matrix_(2, 0)));
+  ROS_INFO("Final offset of Gyro  X axis = %d", static_cast<int16_t>(offset_matrix_(0, 1)));
+  ROS_INFO("Final offset of Gyro  Y axis = %d", static_cast<int16_t>(offset_matrix_(1, 1)));
+  ROS_INFO("Final offset of Gyro  Z axis = %d", static_cast<int16_t>(offset_matrix_(2, 1)));
+  ROS_INFO("Insert these value above in the config file");
+}
+
 void MPU6050CalibrationNode::run() {
   ros::Rate loop_rate(pub_rate_);
 
@@ -107,6 +122,11 @@ void MPU6050CalibrationNode::run() {
     this->computeOffsets();
     this->publishMPUData();
     this->publishOffsets();
+
+    if (this->isCalibrationFinished()) {
+      this->printOffsets();
+      ros::shutdown();
+    }
 
     loop_rate.sleep();
   }

@@ -44,6 +44,8 @@ class MPU6050CalibrationNode : public MPU6050Node {
   void init();
   void computeOffsets();
   void publishOffsets();
+  bool isCalibrationFinished();
+  void printOffsets();
   void run();
 
  private:
@@ -54,6 +56,7 @@ class MPU6050CalibrationNode : public MPU6050Node {
 
   float kp_;
   float ki_;
+  float delta_;
 
   Eigen::Matrix<float, 3, 2> i_term_matrix_;
   Eigen::Matrix<float, 3, 2> p_term_matrix_;
