@@ -23,8 +23,8 @@ SOFTWARE.
 ===============================================
 */
 
-#ifndef MPU6050_DRIVER_MPU6050_CALIBRATION_HPP_
-#define MPU6050_DRIVER_MPU6050_CALIBRATION_HPP_
+#ifndef MPU6050_DRIVER_MPU6050_CALIBRATION_NODE_HPP_
+#define MPU6050_DRIVER_MPU6050_CALIBRATION_NODE_HPP_
 
 #include <eigen3/Eigen/Dense>
 
@@ -42,14 +42,15 @@ class MPU6050CalibrationNode : public MPU6050Node {
  public:
   MPU6050CalibrationNode();
   void init();
-  void computeOffsets();
-  void publishOffsets();
-  bool isCalibrationFinished();
   void printOffsets();
   void run();
 
  private:
   void loadParameters();
+  void computeOffsets();
+  void adjustOffsets();
+  void publishOffsets();
+  bool isCalibrationFinished();
 
   ros::NodeHandle nh_;
   ros::Publisher imu_offsets_pub_;
@@ -66,4 +67,4 @@ class MPU6050CalibrationNode : public MPU6050Node {
 
 }  // namespace mpu6050_driver
 
-#endif  // MPU6050_DRIVER_MPU6050_CALIBRATION_HPP_
+#endif  // MPU6050_DRIVER_MPU6050_CALIBRATION_NODE_HPP_

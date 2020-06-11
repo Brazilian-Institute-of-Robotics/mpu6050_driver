@@ -75,7 +75,9 @@ void MPU6050CalibrationNode::computeOffsets() {
   i_term_matrix_ += ki_ * error_matrix_ * dt;
 
   offset_matrix_ = p_term_matrix_ + i_term_matrix_;
+}
 
+void MPU6050CalibrationNode::adjustOffsets() {
   mpu6050_.setXAccelOffset(static_cast<int16_t>(offset_matrix_(0, 0)));
   mpu6050_.setYAccelOffset(static_cast<int16_t>(offset_matrix_(1, 0)));
   mpu6050_.setZAccelOffset(static_cast<int16_t>(offset_matrix_(2, 0)));
@@ -120,6 +122,7 @@ void MPU6050CalibrationNode::run() {
 
   while (ros::ok()) {
     this->computeOffsets();
+    this->adjustOffsets();
     this->publishMPUData();
     this->publishOffsets();
 
