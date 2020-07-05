@@ -1,3 +1,4 @@
+// Copyright (c) 2012 Jeff Rowberg
 // I2Cdev library collection - MPU6050 I2C device class, 6-axis MotionApps 6.12 implementation
 // Based on InvenSense MPU-6050 register map document rev. 2.0, 5/19/2011 (RM-MPU-6000A-00)
 // 5/20/2013 by Jeff Rowberg <jeff@rowberg.net>
@@ -35,11 +36,10 @@ THE SOFTWARE.
 ===============================================
 */
 
-#ifndef MPU6050_DRIVER_MPU6050_6AXIS_MOTION_APPS_H_
-#define MPU6050_DRIVER_MPU6050_6AXIS_MOTION_APPS_H_
+#ifndef MPU6050_DRIVER_MPU6050_DMP_HPP_
+#define MPU6050_DRIVER_MPU6050_DMP_HPP_
 
 #include "mpu6050_driver/helper_3dmath.h"
-#include "mpu6050_driver/mpu6050.hpp"
 #include "i2c_device_ros/i2c_device.hpp"
 
 /* Source is from the InvenSense MotionApps v2 demo code. Original source is
@@ -368,4 +368,4 @@ class MPU6050DMP {
 
 }  // namespace mpu6050_driver
 
-#endif  // MPU6050_DRIVER_MPU6050_6AXIS_MOTION_APPS_H_
+#endif  // MPU6050_DRIVER_MPU6050_DMP_HPP_

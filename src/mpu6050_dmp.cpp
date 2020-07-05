@@ -42,6 +42,7 @@ THE SOFTWARE.
 #include <cstring>
 #include <stdexcept>
 #include "mpu6050_driver/mpu6050_dmp.hpp"
+#include "mpu6050_driver/types.hpp"
 
 namespace mpu6050_driver {
 
