@@ -36,7 +36,7 @@ MPU6050Node::MPU6050Node()
   : axes_offsets_(6) {}
 
 void MPU6050Node::init() {
-  mpu_data_pub_ = nh_.advertise<sensor_msgs::Imu>("imu", 1);
+  mpu_data_pub_ = nh_.advertise<sensor_msgs::Imu>("imu/data_raw", 1);
 
   this->loadParameters();
 
