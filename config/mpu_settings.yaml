@@ -5,14 +5,14 @@ bus_uri: "/dev/i2c-1"
 mpu_address: 0x68
 
 # Frequency in Hertz wich IMU data is published (default: 30)
-pub_rate: 10
+pub_rate: 25
 
 # Frame if of IMU message (default: "imu")
 frame_id: "imu"
 
 # Offsets to fix wrong values caused by misalignment
 # Sequence is (ax, ay, az, gx, gy, gz) (default: [0, 0, 0, 0, 0, 0])
-axes_offsets: [-1970, 78, 1203, 81, -13, 9]
+axes_offsets: [-1987, 44, 1210, 75, -10, 7]
 
 # PID constants used in calibration procedure
 ki: 0.2 # (default: 0.1)
