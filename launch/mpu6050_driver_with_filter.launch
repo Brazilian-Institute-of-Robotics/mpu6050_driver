@@ -1,0 +1,13 @@
+<?xml version="1.0"?>
+<launch>
+ 
+  <node name="mpu_node" pkg="mpu6050_driver" type="mpu6050_node" output="screen">
+    <rosparam file="$(find mpu6050_driver)/config/mpu_settings.yaml" command="load"/>
+  </node>
+
+  <node name="imu_filter_node" pkg="imu_filter_madgwick" type="imu_filter_node" output="screen">
+    <rosparam file="$(find mpu6050_driver)/config/madgwick_filter_params.yaml" command="load"/>
+    <remap from="imu/data" to="imu/data_filtered"/>
+  </node>
+
+</launch>

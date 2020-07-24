@@ -1,0 +1,33 @@
+# The world frame with respect to which the orientation is indicated (see REP-145). For historic reasons, the old
+# default is "nwu" (North-West-Up). New deployments should use "enu". Valid values: "nwu", "enu", "ned".
+world_frame: "enu"  # (string, default: "nwu" for Indigo - Kinetic, "enu" for Lunar+)
+
+# Whether to use the magnetic field data in the data fusion.
+use_mag: false   # (bool, default: true)
+
+# If set to true, subscribe to the /imu/mag topic as a sensor_msgs/MagneticField; if set to false (deprecated), use
+# geometry_msgs/Vector3Stamped.
+use_magnetic_field_msg: false   # (bool, default: false for Hydro and Indigo, true for Jade+)
+
+# The parent frame to be used in publish_tf.
+fixed_frame: "odom"   # (string, default: odom)
+
+# Whether to publish a TF transform that represents the orientation of the IMU, using the frame specified in
+# fixed_frame as the parent frame and the frame given in the input imu message as the child frame.
+publish_tf: true  # (bool, default: true)
+
+# If set to true, publish transforms from imu_frame to fixed frame instead of the other way around.
+reverse_tf: false  # (bool, default: false)
+
+# The dt to use; if 0.0 (default), compute dt dynamically from message headers.
+constant_dt: 0.0   # (double, default: 0.0)
+
+# If set to true, publish a couple of debug topics.
+publish_debug_topics: false  # (bool, default: false)
+
+# If set to true, don't publish a filtered orientation. Instead, publish the stateless estimate of the orientation
+# based on the latest accelerometer (and optionally magnetometer) readings alone. Useful for debugging.
+stateless: false   # (bool, default: false)
+
+# If set to true, subtract the gravity vector from the acceleration field in the published IMU message.
+remove_gravity_vector: false   # (bool, default: false)

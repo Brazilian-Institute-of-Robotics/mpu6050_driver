@@ -23,18 +23,20 @@ SOFTWARE.
 ===============================================
 */
 
+#include <cmath>
 #include "mpu6050_driver/mpu6050_node.hpp"
 #include "sensor_msgs/Imu.h"
 
 namespace mpu6050_driver {
 
 static const float gravity_value = 9.81;
+static const float deg_to_rad_factor = M_PI / 180.0;
 
 MPU6050Node::MPU6050Node()
   : axes_offsets_(6) {}
 
 void MPU6050Node::init() {
-  mpu_data_pub_ = nh_.advertise<sensor_msgs::Imu>("imu", 1);
+  mpu_data_pub_ = nh_.advertise<sensor_msgs::Imu>("imu/data_raw", 1);
 
   this->loadParameters();
 
@@ -67,9 +69,9 @@ void MPU6050Node::publishMPUData() {
   imu_data.linear_acceleration.y = mpu_data.accel.y * gravity_value;
   imu_data.linear_acceleration.z = mpu_data.accel.z * gravity_value;
 
-  imu_data.angular_velocity.x =  mpu_data.gyro.x;
-  imu_data.angular_velocity.y =  mpu_data.gyro.y;
-  imu_data.angular_velocity.z =  mpu_data.gyro.z;
+  imu_data.angular_velocity.x =  mpu_data.gyro.x * deg_to_rad_factor;
+  imu_data.angular_velocity.y =  mpu_data.gyro.y * deg_to_rad_factor;
+  imu_data.angular_velocity.z =  mpu_data.gyro.z * deg_to_rad_factor;
 
   imu_data.header.frame_id = imu_frame_id_;
   imu_data.header.stamp = ros::Time::now();
