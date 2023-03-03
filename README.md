@@ -149,6 +149,6 @@ Please report bugs and request features using the
 [Doogie Mouse robot]: https://github.com/Brazilian-Institute-of-Robotics/doogie
 [Arduino Library]: https://github.com/ElectronicCats/mpu6050
 [Raspbian Jessie]: https://www.raspberrypi.org/downloads/raspbian/
-[i2c_device_ros]: https://github.com/mateusmenezes95/i2c_device_ros
+[i2c_device_ros]: https://github.com/Brazilian-Institute-of-Robotics/i2c_device_ros
 [The MPU6050 Explained]: https://mjwhite8119.github.io/Robots/mpu6050
 [mpu_settings.yaml]: config/mpu_settings.yaml
