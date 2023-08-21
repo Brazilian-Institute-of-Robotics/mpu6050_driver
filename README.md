@@ -31,14 +31,14 @@ the [i2c_device_ros] package into your workspace
 
 ```sh
 $ cd <YOUR_WS>/src
-$ git clone https://github.com/mateusmenezes95/i2c_device_ros.git
+$ git clone https://github.com/Brazilian-Institute-of-Robotics/i2c_device_ros.git
 ```
 
 Now, clone the latest version from this repository into your catkin workspace
 
 ```sh
 $ cd <YOUR_WS>/src
-$ git clone https://github.com/mateusmenezes95/mpu6050_driver.git
+$ git clone https://github.com/Brazilian-Institute-of-Robotics/mpu6050_driver.git
 $ cd ../
 ```
 
