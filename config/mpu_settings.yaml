@@ -8,7 +8,7 @@ mpu6050_node:
     mpu_address: 0x68
 
     # Frequency in Hertz which IMU data is published
-    pub_rate: 25
+    pub_rate: 200.0
 
     # Frame id of IMU message
     frame_id: "imu"
