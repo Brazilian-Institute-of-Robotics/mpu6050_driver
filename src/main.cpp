@@ -10,7 +10,7 @@ int main(int argc, char **argv) {
     auto node = std::make_shared<mpu6050_driver::MPU6050Node>();
 
     try {
-        node->init();
+        //node->init();
         rclcpp::spin(node);
     } catch (const std::runtime_error& error) {
         RCLCPP_FATAL(node->get_logger(), "%s", error.what());

@@ -55,7 +55,7 @@ void MPU6050CalibrationNode::loadParameters() {
 }
 
 void MPU6050CalibrationNode::init() {
-    MPU6050Node::init(); // Assuming MPU6050Node::init() is correctly adapted for ROS2
+    //MPU6050Node::init(); // Assuming MPU6050Node::init() is correctly adapted for ROS2
     imu_offsets_pub_ = this->create_publisher<sensor_msgs::msg::Imu>("imu_offsets", 10);
 
     auto timer_callback = [this]() -> void {

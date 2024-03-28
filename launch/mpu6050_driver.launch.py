@@ -11,7 +11,7 @@ def generate_launch_description():
         Node(
             package='mpu6050_driver',
             executable='mpu6050_node',
-            name='mpu_node',
+            name='mpu6050_node',
             output='screen',
             parameters=[config_file_path]  # Load parameters from the YAML file
         )
