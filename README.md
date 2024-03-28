@@ -52,7 +52,7 @@ sensor on its final place on your robot (this is strongly important!) and then
 run the calibration node:
 
 ```sh
-$ ros2 launch mpu6050_driver mpu6050_calibration.launch.pu
+$ ros2 launch mpu6050_driver mpu6050_calibration.launch.py
 ```
 
 The process will take a few minutes to finish. While that, you can see the IMU
