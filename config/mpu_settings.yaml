@@ -15,7 +15,7 @@ mpu6050_node:
 
     # Offsets to fix wrong values caused by misalignment
     # Sequence is (ax, ay, az, gx, gy, gz)
-    axes_offsets: [-1987, 44, 1210, 75, -10, 7]
+    axes_offsets: [-2589, -1383, 1628, -20, -34, 53]
 
     # PID constants used in calibration procedure
     ki: 0.2
