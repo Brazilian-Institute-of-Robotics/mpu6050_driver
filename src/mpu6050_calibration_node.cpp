@@ -23,59 +23,85 @@ SOFTWARE.
 ===============================================
 */
 
-#include "ros/ros.h"
-#include "geometry_msgs/Vector3.h"
-#include "sensor_msgs/Imu.h"
-
 #include "mpu6050_driver/mpu6050_calibration_node.hpp"
+#include <eigen3/Eigen/Dense>
+#include <cmath>
+#include <memory>
+#include "rclcpp/rclcpp.hpp"
+#include "sensor_msgs/msg/imu.hpp"
 
 namespace mpu6050_driver {
 
 MPU6050CalibrationNode::MPU6050CalibrationNode()
-  : MPU6050Node()
-  , i_term_matrix_(3, 2)
-  , p_term_matrix_(3, 2)
-  , offset_matrix_(3, 2)
-  , error_matrix_(3, 2) {}
+: MPU6050Node(), // Ensure base class is adapted for ROS2
+  i_term_matrix_(Eigen::Matrix<float, 3, 2>::Zero()),
+  p_term_matrix_(Eigen::Matrix<float, 3, 2>::Zero()),
+  offset_matrix_(Eigen::Matrix<float, 3, 2>::Zero()),
+  error_matrix_(Eigen::Matrix<float, 3, 2>::Zero()) {
+    declare_parameters();
+}
+
+void MPU6050CalibrationNode::declare_parameters() {
+    this->declare_parameter<float>("kp", 0.1f);
+    this->declare_parameter<float>("ki", 0.1f);
+    this->declare_parameter<float>("delta", 0.5f);
+    loadParameters();
+}
 
 void MPU6050CalibrationNode::loadParameters() {
-  ros::NodeHandle ph("~");
-  this->getParameterHelper<float>(ph, "kp", &kp_, 0.1);
-  this->getParameterHelper<float>(ph, "ki", &ki_, 0.1);
-  this->getParameterHelper<float>(ph, "delta", &delta_, 0.5);
+    kp_ = this->get_parameter("kp").as_double();
+    ki_ = this->get_parameter("ki").as_double();
+    delta_ = this->get_parameter("delta").as_double();
 }
 
 void MPU6050CalibrationNode::init() {
-  MPU6050Node::init();
-  this->loadParameters();
+    MPU6050Node::init(); // Assuming MPU6050Node::init() is correctly adapted for ROS2
+    imu_offsets_pub_ = this->create_publisher<sensor_msgs::msg::Imu>("imu_offsets", 10);
 
-  i_term_matrix_ = Eigen::Matrix<float, 3, 2>::Zero();
+    auto timer_callback = [this]() -> void {
+        this->performCalibrationStep();
+    };
 
-  imu_offsets_pub_ = nh_.advertise<sensor_msgs::Imu>("imu_offsets", 1);
+    auto timer_period = std::chrono::milliseconds(static_cast<int>(1000 / pub_rate_));
+    calibration_timer_ = this->create_wall_timer(timer_period, timer_callback);
 
-  ROS_INFO("MPU6050 Calibration Node has started");
+    RCLCPP_INFO(this->get_logger(), "MPU6050 Calibration Node has started.");
+}
+
+void MPU6050CalibrationNode::performCalibrationStep() {
+    computeOffsets();
+    adjustOffsets();
+    publishOffsets();
+
+    if (isCalibrationFinished()) {
+        printOffsets();
+        calibration_timer_->cancel(); // Optionally stop the timer
+    }
 }
 
 void MPU6050CalibrationNode::computeOffsets() {
-  float dt = 1.0 / pub_rate_;  // How it isn't a dynamic system, sample time doesn't must exactly computed
+    float dt = 1.0 / pub_rate_; // Time delta based on publication rate, for integral calculation
 
-  IMUData<int16_t> imu_raw_data = mpu6050_.getRawMotion6();
-  imu_raw_data.accel.z -= 16384;  // Remove gravity contribution
+    auto imu_raw_data = mpu6050_.getRawMotion6(); // Fetch raw sensor data
+    // Adjust the Z-axis acceleration to account for gravity, assuming the sensor's output needs to be scaled
+    imu_raw_data.accel.z -= 16384; // Assuming raw value representing 1g, adjust based on your sensor's datasheet
 
-  /* The divisions here is beacause the offsets need to be set when the MPU is 
-  in the less sensitive mode (accel in 16g mode and gyro in 2000 degrees/sec mode).
-  For more details, see https://forum.arduino.cc/index.php?topic=535717.0
-  Another thing, the minus sign is because the error is calculated as
-  setpoint - plant_value, though all set point is always 0, then error = -plant_value */
-  error_matrix_ << -(imu_raw_data.accel.x / 8), -(imu_raw_data.gyro.x / 4),
-                   -(imu_raw_data.accel.y / 8), -(imu_raw_data.gyro.y / 4),
-                   -(imu_raw_data.accel.z / 8), -(imu_raw_data.gyro.z / 4);
+    // Calculate the error as the difference between expected (setpoint) and actual values
+    // Assuming the setpoints are 0 for all axes except Z acceleration due to gravity
+    error_matrix_ << -(imu_raw_data.accel.x / 8), -(imu_raw_data.gyro.x / 4),
+                     -(imu_raw_data.accel.y / 8), -(imu_raw_data.gyro.y / 4),
+                     -(imu_raw_data.accel.z / 8), -(imu_raw_data.gyro.z / 4);
 
-  p_term_matrix_ = kp_ * error_matrix_;
-  i_term_matrix_ += ki_ * error_matrix_ * dt;
+    // Update PID terms: Proportional and Integral. Derivative term can be added for improved control
+    p_term_matrix_ = kp_ * error_matrix_; // Proportional term
+    i_term_matrix_ += ki_ * error_matrix_ * dt; // Integral term accumulates over time
 
-  offset_matrix_ = p_term_matrix_ + i_term_matrix_;
+    // Calculate offsets by combining P and I terms. D term can be included for a full PID controller
+    offset_matrix_ = p_term_matrix_ + i_term_matrix_;
+
+    // Optional: Implement rate limiting or clamping on offset_matrix_ to ensure stability and prevent overshooting
 }
+
 
 void MPU6050CalibrationNode::adjustOffsets() {
   mpu6050_.setXAccelOffset(static_cast<int16_t>(offset_matrix_(0, 0)));
@@ -87,52 +113,41 @@ void MPU6050CalibrationNode::adjustOffsets() {
 }
 
 void MPU6050CalibrationNode::publishOffsets() {
-  sensor_msgs::Imu imu_offsets_msg;
+    sensor_msgs::msg::Imu imu_offsets_msg;
 
-  imu_offsets_msg.linear_acceleration.x = offset_matrix_(0, 0);
-  imu_offsets_msg.linear_acceleration.y = offset_matrix_(1, 0);
-  imu_offsets_msg.linear_acceleration.z = offset_matrix_(2, 0);
+    // Assuming offset_matrix_ stores the calculated offsets in a manner such that:
+    // - The first column represents acceleration offsets for x, y, z axes respectively.
+    // - The second column represents angular velocity (gyro) offsets for x, y, z axes respectively.
+    imu_offsets_msg.linear_acceleration.x = offset_matrix_(0, 0);
+    imu_offsets_msg.linear_acceleration.y = offset_matrix_(1, 0);
+    imu_offsets_msg.linear_acceleration.z = offset_matrix_(2, 0);
 
-  imu_offsets_msg.angular_velocity.x = offset_matrix_(0, 1);
-  imu_offsets_msg.angular_velocity.y = offset_matrix_(1, 1);
-  imu_offsets_msg.angular_velocity.z = offset_matrix_(2, 1);
+    imu_offsets_msg.angular_velocity.x = offset_matrix_(0, 1);
+    imu_offsets_msg.angular_velocity.y = offset_matrix_(1, 1);
+    imu_offsets_msg.angular_velocity.z = offset_matrix_(2, 1);
 
-  imu_offsets_msg.header.frame_id = imu_frame_id_;
-  imu_offsets_msg.header.stamp = ros::Time::now();
+    // Set the frame ID and timestamp for the message
+    imu_offsets_msg.header.frame_id = imu_frame_id_; // Ensure imu_frame_id_ is correctly initialized
+    imu_offsets_msg.header.stamp = this->get_clock()->now();
 
-  imu_offsets_pub_.publish(imu_offsets_msg);
+    // Publish the offsets
+    imu_offsets_pub_->publish(imu_offsets_msg);
 }
 
 bool MPU6050CalibrationNode::isCalibrationFinished() {
-  return error_matrix_.isApprox(Eigen::Matrix<float, 3, 2>::Zero(), delta_) ? true : false;
+    // Determine if calibration is complete based on error_matrix_ and delta_
+    return error_matrix_.isApprox(Eigen::Matrix<float, 3, 2>::Zero(), delta_);
 }
 
 void MPU6050CalibrationNode::printOffsets() {
-  ROS_INFO("Final offset of Accel X axis = %d", static_cast<int16_t>(offset_matrix_(0, 0)));
-  ROS_INFO("Final offset of Accel Y axis = %d", static_cast<int16_t>(offset_matrix_(1, 0)));
-  ROS_INFO("Final offset of Accel Z axis = %d", static_cast<int16_t>(offset_matrix_(2, 0)));
-  ROS_INFO("Final offset of Gyro  X axis = %d", static_cast<int16_t>(offset_matrix_(0, 1)));
-  ROS_INFO("Final offset of Gyro  Y axis = %d", static_cast<int16_t>(offset_matrix_(1, 1)));
-  ROS_INFO("Final offset of Gyro  Z axis = %d", static_cast<int16_t>(offset_matrix_(2, 1)));
-  ROS_INFO("Insert these value above in the config file");
+    RCLCPP_INFO(this->get_logger(), "Final offset of Accel X axis = %d", static_cast<int16_t>(offset_matrix_(0, 0)));
+    RCLCPP_INFO(this->get_logger(), "Final offset of Accel Y axis = %d", static_cast<int16_t>(offset_matrix_(1, 0)));
+    RCLCPP_INFO(this->get_logger(), "Final offset of Accel Z axis = %d", static_cast<int16_t>(offset_matrix_(2, 0)));
+    RCLCPP_INFO(this->get_logger(), "Final offset of Gyro  X axis = %d", static_cast<int16_t>(offset_matrix_(0, 1)));
+    RCLCPP_INFO(this->get_logger(), "Final offset of Gyro  Y axis = %d", static_cast<int16_t>(offset_matrix_(1, 1)));
+    RCLCPP_INFO(this->get_logger(), "Final offset of Gyro  Z axis = %d", static_cast<int16_t>(offset_matrix_(2, 1)));
+    RCLCPP_INFO(this->get_logger(), "Insert these values above in the config file");
 }
 
-void MPU6050CalibrationNode::run() {
-  ros::Rate loop_rate(pub_rate_);
-
-  while (ros::ok()) {
-    this->computeOffsets();
-    this->adjustOffsets();
-    this->publishMPUData();
-    this->publishOffsets();
-
-    if (this->isCalibrationFinished()) {
-      this->printOffsets();
-      ros::shutdown();
-    }
-
-    loop_rate.sleep();
-  }
-}
 
 }  // namespace mpu6050_driver

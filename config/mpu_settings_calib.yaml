@@ -1,5 +1,5 @@
 # ROS2 parameter file format
-mpu6050_node:
+mpu_calibration_node:
   ros__parameters:
     # I2C Bus URI used to communicate with I2C devices
     bus_uri: "/dev/i2c-1"

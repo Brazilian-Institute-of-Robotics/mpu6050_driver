@@ -1,75 +1,57 @@
-cmake_minimum_required(VERSION 2.8.3)
+cmake_minimum_required(VERSION 3.5)
 project(mpu6050_driver)
 
-add_compile_options(-std=c++11)
-# add_definitions(-Wall -Werror)
+# Default to C++14
+if(NOT CMAKE_CXX_STANDARD)
+  set(CMAKE_CXX_STANDARD 14)
+endif()
 
-set(CATKIN_DEPS 
-  # diagnostic_msgs
-  roscpp
-  sensor_msgs
-  i2c_device_ros
-)
-
-find_package(catkin REQUIRED COMPONENTS ${CATKIN_DEPS})
+# find dependencies
+find_package(ament_cmake REQUIRED)
+find_package(rclcpp REQUIRED)
+find_package(sensor_msgs REQUIRED)
 find_package(Eigen3 REQUIRED)
-find_package(cmake_modules REQUIRED)
-
-catkin_package(
- INCLUDE_DIRS include
- CATKIN_DEPENDS ${CATKIN_DEPS}
- DEPENDS Eigen
-)
 
 include_directories(
   include
-  ${catkin_INCLUDE_DIRS}
   ${Eigen3_INCLUDE_DIRS}
 )
 
-set(MPU6050_NODE_LIB mpu6050_node_lib)
-add_library(${MPU6050_NODE_LIB}
+# Define library target
+add_library(mpu6050_node_lib
   src/mpu6050_node.cpp
   src/mpu6050.cpp
 )
 
-add_executable(mpu6050_node 
-  src/main.cpp
-)
+# Define executable targets
+add_executable(mpu6050_node src/main.cpp)
+ament_target_dependencies(mpu6050_node rclcpp sensor_msgs)
+target_link_libraries(mpu6050_node mpu6050_node_lib)
 
-target_link_libraries(mpu6050_node
-  ${catkin_LIBRARIES}
-  ${MPU6050_NODE_LIB}
-)
+add_executable(mpu6050_calibration_node src/main_calibration.cpp src/mpu6050_calibration_node.cpp)
+ament_target_dependencies(mpu6050_calibration_node rclcpp sensor_msgs)
+target_link_libraries(mpu6050_calibration_node mpu6050_node_lib)
 
-add_executable(mpu6050_calibration_node 
-  src/main_calibration.cpp
-  src/mpu6050_calibration_node.cpp
-)
+# Install targets
+install(TARGETS
+  mpu6050_node
+  mpu6050_calibration_node
+  mpu6050_node_lib
+  DESTINATION lib/${PROJECT_NAME})
 
-target_link_libraries(mpu6050_calibration_node
-  ${catkin_LIBRARIES}
-  ${MPU6050_NODE_LIB}
-)
+install(DIRECTORY include/
+  DESTINATION include)
 
-# install(TARGETS ${PROJECT_NAME}_node
-#   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+# Uncomment if you have package specific launch files, config files or other files to install
+# install(DIRECTORY
+#   launch
+#   config
+#   DESTINATION share/${PROJECT_NAME}
 # )
 
-# install(TARGETS ${PROJECT_NAME}
-#   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-#   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-#   RUNTIME DESTINATION ${CATKIN_GLOBAL_BIN_DESTINATION}
-# )
+# Export dependencies
+ament_export_include_directories(include)
+ament_export_libraries(mpu6050_node_lib)
+ament_export_dependencies(rclcpp sensor_msgs Eigen3)
 
-# install(DIRECTORY include/${PROJECT_NAME}/
-#   DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
-#   FILES_MATCHING PATTERN "*.h"
-#   PATTERN ".svn" EXCLUDE
-# )
-
-# install(FILES
-#   # myfile1
-#   # myfile2
-#   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
-# )
+ament_package()

@@ -1,21 +1,35 @@
 <?xml version="1.0"?>
-<package format="2">
+<package format="3">
   <name>mpu6050_driver</name>
-  <version>0.0.0</version>
-  <description>IMU MPU6050 ROS driver for Raspberry boards</description>
+  <version>0.1.0</version>
+  <description>IMU MPU6050 ROS2 driver for Raspberry Pi boards</description>
 
   <maintainer email="mateusmenezes95@gmail.com">Mateus Menezes</maintainer>
+  <!-- You can also add additional maintainers -->
+  
   <author email="mateusmenezes95@gmail.com">Mateus Menezes</author>
 
   <license>MIT</license>
 
-  <buildtool_depend>catkin</buildtool_depend>
+  <!-- Use ament_cmake as the build tool for ROS2 -->
+  <buildtool_depend>ament_cmake</buildtool_depend>
 
-  <depend>roscpp</depend>
-  <depend>i2c_device_ros</depend>
-  <!-- <depend>diagnostic_msgs</depend> -->
+  <!-- Dependencies -->
+  <depend>rclcpp</depend>
   <depend>sensor_msgs</depend>
+  <!-- i2c_device_ros might need to be ported to ROS2 or replaced with an equivalent package if it's a ROS1 package -->
+  <depend>i2c_device_ros</depend>
+  
+  <!-- Eigen3 is found directly via find_package in CMakeLists.txt, so it's listed as a build depend -->
+  <!-- <build_depend>eigen3_cmake_module</build_depend>
+  <exec_depend>eigen3_cmake_module</exec_depend> -->
+  
+  <!-- If you have messages or services, you might need additional dependencies like -->
+  <!-- <build_depend>message_generation</build_depend> -->
+  <!-- <exec_depend>message_runtime</exec_depend> -->
 
-  <build_depend>cmake_modules</build_depend>
-
+  <!-- Export the package's dependencies -->
+  <export>
+    <!-- Other packages that need to be included in the build environment for this package -->
+  </export>
 </package>

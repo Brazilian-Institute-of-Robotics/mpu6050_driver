@@ -1,22 +1,22 @@
 // Copyright (c) 2020 Mateus Menezes
 
-#include <ros/ros.h>
+#include <rclcpp/rclcpp.hpp>
 #include <exception>
 #include "mpu6050_driver/mpu6050_node.hpp"
 
 int main(int argc, char **argv) {
-  ros::init(argc, argv, "mpu6050_node");
-  ros::NodeHandle nh;
+    rclcpp::init(argc, argv);
 
-  mpu6050_driver::MPU6050Node mpu_node;
+    auto node = std::make_shared<mpu6050_driver::MPU6050Node>();
 
-  try {
-    mpu_node.init();
-    mpu_node.run();
-  } catch (std::runtime_error error) {
-    ROS_FATAL("%s", error.what());
-    ros::shutdown();
-  }
+    try {
+        node->init();
+        rclcpp::spin(node);
+    } catch (const std::runtime_error& error) {
+        RCLCPP_FATAL(node->get_logger(), "%s", error.what());
+        rclcpp::shutdown();
+    }
 
-  return 0;
+    rclcpp::shutdown();
+    return 0;
 }

@@ -27,143 +27,95 @@ SOFTWARE.
 #define MPU6050_DRIVER_MPU6050_CALIBRATION_NODE_HPP_
 
 #include <eigen3/Eigen/Dense>
-
-#include <cstdint>
-#include <string>
-
-#include "ros/ros.h"
-
+#include <memory>
+#include "rclcpp/rclcpp.hpp"
 #include "mpu6050_driver/mpu6050.hpp"
-#include "mpu6050_driver/mpu6050_node.hpp"
+#include "mpu6050_driver/mpu6050_node.hpp" // Make sure this is adapted for ROS2
+#include "sensor_msgs/msg/imu.hpp"
 
 namespace mpu6050_driver {
 
 /**
- * @brief Implement MPU6050 calibration process through a ROS node
- * 
- * This class implements a node to compute the offsets that must be applied in
- * the MPU6050 to fix misaligment mistakes. For this purpose, is being used the
- * PID algorithm to compute the offsets of all MPU6050 axes.
- * 
+ * @brief A ROS2 node for calibrating the MPU6050 sensor.
+ *
+ * This class extends the MPU6050Node to implement a calibration process for the MPU6050 sensor,
+ * using a PID algorithm to compute offsets for all axes. Calibration steps are executed periodically
+ * based on a timer.
  */
 class MPU6050CalibrationNode : public MPU6050Node {
- public:
+public:
   /**
    * @brief Construct a new MPU6050CalibrationNode object
-   * 
    */
   MPU6050CalibrationNode();
 
   /**
-   * @brief Run all neccessary setup for calibration process.
-   * 
-   * This method invokes the methods responsible to setup the MPU and the ROS node
-   * such as MPU6050 initialization, ros parameters loading and node advertising.
-   * 
+   * @brief Initialize calibration node, setting up parameters, publisher, and timer.
    */
   void init();
 
+private:
   /**
-   * @brief Print, using ROS_INFO, the current calibration offsets applied
-   * in MPU6050.
-   * 
-   * In each loop of calibration process, new offsets are computed and applied
-   * in MPU6050 offsets registers. Then, this method will show the current
-   * offsets that are beign applied
-   * 
+   * @brief Declare and load parameters needed for calibration.
    */
-  void printOffsets();
-
-  /**
-   * @brief Run the calibration node.
-   * 
-   * The calibration node is characterized as an infinit loop which each loop
-   * realize the computation of calibration offsets, the offsets adjustments and
-   * the publication of offset data and current MPU6050 data. The loop frequency
-   * is defined in the configuration file. The loop ends when the error between
-   * the setpoint and current offsets values is close zero with the tolerance
-   * defined by the field delta in the configuration file
-   * 
-   * @see computeOffsets
-   * @see adjustOffsets
-   * @see publishOffsets
-   * @see isCalibrationFinished 
-   * 
-   */
-  void run();
-
- private:
-  /**
-   * @brief Load the parameters from ROS parameter server
-   * 
-   */
+  void declare_parameters();
   void loadParameters();
 
   /**
-   * @brief Compute the offsets that must be applied to calibrate the MPU
-   * 
-   * The computation of the calibration offsets is perfomed using the PID
-   * algorithm. For that, take on that all the values, except for aceleration in
-   * the Z axis that must be equal gravity aceleration, must be zero or close
-   * zero when the imu sensor is not moving and is on a flat surface
-   * 
-   * @see kp_
-   * @see ki_
-   * @see i_term_matrix_
-   * @see p_term_matrix_
-   * @see offset_matrix_
-   * @see error_matrix_
+   * @brief Compute offsets using a PID control algorithm.
+   *
+   * This method computes the offsets needed to calibrate the MPU6050 sensor.
+   * The offsets are determined by comparing actual sensor readings against expected
+   * values (e.g., zero for acceleration and gyroscope when the sensor is stationary,
+   * except for the Z acceleration which should be equal to gravitational acceleration).
    */
   void computeOffsets();
 
   /**
-   * @brief Apply the calibration offsets computed in the MPU6050
-   * 
-   * @see computeOffsets
+   * @brief Apply computed offsets to the MPU6050 sensor.
    */
   void adjustOffsets();
 
   /**
-   * @brief Publish the calibration offsets computed in a topic
-   * 
+   * @brief Publish the computed offsets.
+   *
+   * This method publishes the current offsets to a ROS2 topic.
    */
   void publishOffsets();
 
   /**
-   * @brief Chech whether calibration process is finished
-   * 
-   * The calibration process will ends when the error of PID algorithm for all
-   * imu axes is close zero with the tolerance delta_, which is defined in the
-   * configuration file
-   * 
-   * @return true If the error is in the tolerance boundary
-   * @return false If the error isn't in the tolerance boundary
-   * 
-   * @see delta_
-   * @see error_matrix_
+   * @brief Check if the calibration process is complete.
+   *
+   * @return true if the calibration errors are within the acceptable tolerance, false otherwise.
    */
   bool isCalibrationFinished();
 
-  /** Nodehandle for calibration node**/
-  ros::NodeHandle nh_;
-  /** Publisher object for calibration offsets data **/
-  ros::Publisher imu_offsets_pub_;
+  /**
+   * @brief Perform a single step of the calibration process.
+   *
+   * This method is called periodically by a timer. It computes offsets, applies them,
+   * publishes the offsets, and checks if the calibration process is complete.
+   */
+  void performCalibrationStep();
 
-  /** Store proportional gain for PID algorithm **/
-  float kp_;
-  /** Store integral gain for PID algorithm **/
-  float ki_;
-  /** Store the error tolerance acceptable **/
-  float delta_;
+  /**
+   * @brief Print the final offsets to the console.
+   *
+   * This method is called once the calibration process is deemed complete, logging
+   * the final offsets for manual inspection or configuration.
+   */
+  void printOffsets();
 
-  /** Store the proportional terms of PID algorithm of all MPU axes **/
-  Eigen::Matrix<float, 3, 2> p_term_matrix_;
-  /** Store the integral terms of PID algorithm of all MPU axes **/
-  Eigen::Matrix<float, 3, 2> i_term_matrix_;
-  /** Store the error of PID algorithm of all MPU axes **/
-  Eigen::Matrix<float, 3, 2> error_matrix_;
-  /** Store the calibration offsets of all MPU axes **/
-  Eigen::Matrix<float, 3, 2> offset_matrix_;
+  // ROS2 Publisher for publishing the calibration offsets
+  rclcpp::Publisher<sensor_msgs::msg::Imu>::SharedPtr imu_offsets_pub_;
+  // ROS2 Timer for triggering periodic calibration steps
+  rclcpp::TimerBase::SharedPtr calibration_timer_;
+
+  // PID control parameters
+  float kp_, ki_, delta_;
+
+  // Matrices for PID calculations
+  Eigen::Matrix<float, 3, 2> p_term_matrix_, i_term_matrix_, error_matrix_, offset_matrix_;
 };
 
 }  // namespace mpu6050_driver
