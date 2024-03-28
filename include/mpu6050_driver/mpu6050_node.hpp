@@ -1,10 +1,10 @@
-#ifndef MPU6050_DRIVER_MPU6050_NODE_HPP_
-#define MPU6050_DRIVER_MPU6050_NODE_HPP_
+
 
 /* ============================================
 MIT License
 
 //  Copyright (c) 2020 Mateus Meneses
+//  Copyright (c) 2024 Mohamed Abdelkader
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -26,124 +26,86 @@ SOFTWARE.
 ===============================================
 */
 
+#ifndef MPU6050_DRIVER_MPU6050_NODE_HPP_
+#define MPU6050_DRIVER_MPU6050_NODE_HPP_
+
 #include <cstdint>
 #include <string>
 #include <vector>
+#include <memory> // For std::shared_ptr
 
-#include "ros/ros.h"
-#include "mpu6050_driver/mpu6050.hpp"
+#include "rclcpp/rclcpp.hpp" // ROS2 header
+#include "mpu6050_driver/mpu6050.hpp" // Adjust this include path according to your project structure
+#include "sensor_msgs/msg/imu.hpp" // ROS2 IMU message type
 
 namespace mpu6050_driver {
 
 /**
- * @brief Provide MPU6050 data to ROS nodes
+ * @brief Provides MPU6050 data to ROS2 nodes.
  * 
- * This class intend to act as middle layer between the MPU6050 library and ROS
- * applications. Thus, this class basically apply the basics settings to
- * comunicate with the MPU6050 sensor and then get data from de sensor and make it
- * available from ROS interfaces 
- * 1
+ * This class acts as a middle layer between the MPU6050 library and ROS2
+ * applications. It initializes communication with the MPU6050 sensor and publishes its data
+ * to a ROS2 topic at a configured rate.
  */
-class MPU6050Node {
- public:
+class MPU6050Node : public rclcpp::Node {
+public:
   /**
    * @brief Construct a new MPU6050Node object
    * 
+   * The constructor initializes the ROS2 node handle and sets up the MPU6050 sensor
+   * interface.
    */
   MPU6050Node();
 
   /**
-   * @brief Initialize the node and set up the MPU6050 
+   * @brief Initialize the node and set up the MPU6050 sensor.
    * 
-   * This method invokes the methods responsible to setup the MPU and the ROS node
-   * such as MPU6050 initialization, ros parameters loading and node advertising.
-   * 
+   * This method loads parameters from the ROS2 parameter server, sets up the MPU6050 sensor
+   * with any specified calibration offsets, and initializes the publisher for publishing
+   * sensor data to a ROS2 topic.
    */
   void init();
 
-  /**
-   * @brief Run the MPU6050 node
-   * 
-   * This method is a loop which periodically get data from the MPU6050 sensor
-   * and publish in a ROS topic. The frequency which the data will be published
-   * is defined in the node configuration file
-   * 
-   * @see pub_rate_
-   * @see publishMPUData
-   */
-  void run();
+  MPU6050 mpu6050_; // Interface to the MPU6050 sensor
+  float pub_rate_; // Publication rate for MPU6050 data
+  std::string imu_frame_id_; // Frame ID for the published Imu messages
+
+private:
+  
 
   /**
-   * @brief Publish the MPU6050 data
+   * @brief Publish MPU6050 sensor data.
    * 
-   * Get the linear aceleration and the angular velocity of all MPU axes, fills
-   * the sensor_msgs/Imu message and then publish in a topic called "imu"
-   * 
-   * @see mpu_data_pub_
+   * This method is called periodically according to the configured publication rate. It
+   * retrieves data from the MPU6050 sensor and publishes it on the "imu/data_raw" topic as
+   * a sensor_msgs/msg/Imu message.
    */
   void publishMPUData();
 
   /**
-   * @brief Helper method to get parameters from parameter server.
+   * @brief Load node parameters from the ROS2 parameter server.
    * 
-   * This method will checks if a param with @p param_name exists in parameter
-   * server. If it isn't exists, the @p default_value will be assigned to @p 
-   * param. But diferent of NodeHandle class param method, this method print
-   * messages reporting whether or not the parameter was found.
-   * 
-   * @tparam T Data type of the parameter.
-   * @param nh ROS Nodehandle.
-   * @param param_name Name of the parameter.
-   * @param param Pointer to variable which will store the parameter value.
-   * @param default_value Value assigned to @p param if the parameter was not found.
-   */
-  template <typename T>
-  static void getParameterHelper(const ros::NodeHandle &nh, std::string param_name, T *param, T default_value) {
-    if (!nh.param<T>(param_name, *param, default_value)) {
-      ROS_WARN_STREAM_NAMED("mpu6050_ros_driver", "No " << param_name <<
-      " parameter found in the parameter server. Using default parameter value: " << default_value);
-    } else {
-      ROS_INFO_STREAM("Parameter " << param_name << " found and it value is " << *param);
-    }
-  }
-
- protected:
-  /**
-   * @brief Load the parameters from ROS parameter server
-   * 
+   * Parameters include the I2C bus URI, MPU6050 address, publication rate, frame ID for
+   * the published messages, and any initial calibration offsets for the sensor.
    */
   void loadParameters();
 
   /**
-   * @brief Set the calibration offsets to fix misaligment mistake
+   * @brief Apply calibration offsets to correct for sensor misalignment.
    * 
-   * This method get the values from the configuration file and apply in the
-   * calibration registers of MPU6050. The offsets values is computed before
-   * using the calibration node.
-   * 
-   * @see MPU6050CalibrationNode
-   * 
+   * This method applies configured offset values to the MPU6050's calibration registers
+   * to correct for any known sensor misalignments.
    */
   void setMPUOffsets();
 
-  /** Nodehandle for main node **/
-  ros::NodeHandle nh_;
-  /** Publisher object used to publish MPU6050 data **/
-  ros::Publisher mpu_data_pub_;
+  rclcpp::Publisher<sensor_msgs::msg::Imu>::SharedPtr mpu_data_pub_; // Publisher for MPU6050 data
+  rclcpp::TimerBase::SharedPtr data_publish_timer_; // Timer for periodic data publishing
 
-  /** Object used to set/get data to/from MPU6050 **/
-  MPU6050 mpu6050_;
-  /** Store the I2C address of MPU6050 sensor **/
-  int mpu6050_addr_;
-  /** Store the Bus URI used to open I2C comunication **/
-  std::string i2c_bus_uri_;
 
-  /** Store the frequency which the MPU6050 data will be publised **/
-  float pub_rate_;
-  /** Store the name of the frame used in the sensos_msgs/Imu message **/
-  std::string imu_frame_id_;
-  /** Store the offsets to be applied in the MPU6050 initialization **/
-  std::vector<int> axes_offsets_;
+  int mpu6050_addr_; // I2C address of the MPU6050 sensor
+  std::string i2c_bus_uri_; // I2C bus URI
+
+  std::vector<int> axes_offsets_; // Calibration offsets for sensor initialization
 };
 
 }  // namespace mpu6050_driver

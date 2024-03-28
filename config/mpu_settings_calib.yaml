@@ -1,5 +1,5 @@
 # ROS2 parameter file format
-mpu6050_node:
+mpu_calibration_node:
   ros__parameters:
     # I2C Bus URI used to communicate with I2C devices
     bus_uri: "/dev/i2c-1"
@@ -8,14 +8,14 @@ mpu6050_node:
     mpu_address: 0x68
 
     # Frequency in Hertz which IMU data is published
-    pub_rate: 200.0
+    pub_rate: 100.0
 
     # Frame id of IMU message
     frame_id: "imu"
 
     # Offsets to fix wrong values caused by misalignment
     # Sequence is (ax, ay, az, gx, gy, gz)
-    axes_offsets: [-2589, -1383, 1628, -20, -34, 53]
+    axes_offsets: [-1987, 44, 1210, 75, -10, 7]
 
     # PID constants used in calibration procedure
     ki: 0.2

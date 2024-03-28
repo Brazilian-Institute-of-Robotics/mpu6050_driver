@@ -1,7 +1,7 @@
 # MPU6050 Driver
 
 # Overview
-This is a ROS package to use the MPU6050 IMU sensor on platforms with Raspberry
+This is a ROS2 package to use the MPU6050 IMU sensor on platforms with Raspberry
 boards. The package was developed to be used in the [Doogie Mouse robot]. The
 sensor libraries were adapted from the [Arduino Library] of MPU6050 sensor.
 
@@ -10,10 +10,10 @@ sensor libraries were adapted from the [Arduino Library] of MPU6050 sensor.
 ## License
 The source code is released under a [MIT license](LICENSE).
 
-**Author:** Mateus Meneses  
+**Authors:** Mateus Meneses, Mohamed Abdelkader (mohamedashraf123@gmail.com)  
 **Maintainer:** Mateus Meneses, mateusmenezes95@gmail.com
 
-The MPU6050 Driver package has been tested under [ROS] Kinetic and [Raspbian Jessie].
+The barnch `ros2_humble` has been tested under [ROS] `humble` and [Raspberry Pi Bookworm] .
 This is research code, expect that it changes often and any fitness for a
 particular purpose is disclaimed.
 
@@ -21,24 +21,15 @@ particular purpose is disclaimed.
 
 ## Dependencies
 
-- [Robot Operating System (ROS)](http://wiki.ros.org) (Middleware for robotics),
-- [i2c_device_ros] (C++ library to read/write from/to I2C devices)
+- [Robot Operating System (ROS)](http://wiki.ros.org) (Middleware for robotics)
 
 ## Building
 
-The first step to build this package is install its dependency. To that, clone
-the [i2c_device_ros] package into your workspace
+Now, clone the latest version from this repository into your ROS workspace
 
 ```sh
 $ cd <YOUR_WS>/src
-$ git clone https://github.com/mateusmenezes95/i2c_device_ros.git
-```
-
-Now, clone the latest version from this repository into your catkin workspace
-
-```sh
-$ cd <YOUR_WS>/src
-$ git clone https://github.com/mateusmenezes95/mpu6050_driver.git
+$ git clone -b ros2_humble https://github.com/mateusmenezes95/mpu6050_driver.git
 $ cd ../
 ```
 
@@ -46,12 +37,9 @@ Then, to build the package you could use two options:
 
 - pure catkin
 ```sh
-$ catkin_make -DCATKIN_WHITELIST_PACKAGES="mpu6050_driver;i2c_device_ros;
+$ colcon build
 ```
-- catkin tool
-```sh
-$ catkin build mpu6050_driver
-```
+
 # Usage
 
 ## Calibration Process
@@ -64,7 +52,7 @@ sensor on its final place on your robot (this is strongly important!) and then
 run the calibration node:
 
 ```sh
-$ roslaunch mpu6050_driver mpu6050_calibration.launch
+$ ros2 launch mpu6050_driver mpu6050_calibration.launch.py
 ```
 
 The process will take a few minutes to finish. While that, you can see the IMU
@@ -73,13 +61,13 @@ registers in the topic "imu_offsets". In a new terminal, you can see the imu
 messages runnig
 
 ```sh
-$ rostopic echo /imu -c
+$ ros2 topic echo /imu/data_raw
 ```
 
 and the offsets running on a new terminal
 
 ```sh
-$ rostopic echo /imu_offsets -c
+$ ros2 topic echo /imu_offsets
 ```
 
 You'll see the angular velocity and linear acceleration values converging to
@@ -96,7 +84,7 @@ config file.
 After to calibrate the MPU sensor, you can run the main node with
 
 ```sh
-$ roslaunch mpu6050_driver mpu6050_driver.launch
+$ ros2 launch mpu6050_driver mpu6050_driver.launch.py
 ```
 
 # Config files
@@ -106,10 +94,10 @@ and main node
 
 # Launch files
 
-* **[mpu6050_calibration.launch](launch/mpu6050_calibration.launch):** Launch the
+* **[mpu6050_calibration.launch.py](launch/mpu6050_calibration.launch.py):** Launch the
 calibration node
 
-* **[mpu6050_driver.launch](launch/mpu6050_driver.launch):** Launch the main node
+* **[mpu6050_driver.launch.py](launch/mpu6050_driver.launch.py):** Launch the main node
 
 # Nodes
 
@@ -118,7 +106,7 @@ calibration node
 Publish the MPU6050 data
 
 ### Published Topics
-* **`/imu`** ([sensor_msgs/IMU])
+* **`/imu/data_raw`** ([sensor_msgs/IMU])
 Imu data with the values from MPU6050 accelerometer and gyroscope
 
 ### Parameters
@@ -149,6 +137,5 @@ Please report bugs and request features using the
 [Doogie Mouse robot]: https://github.com/Brazilian-Institute-of-Robotics/doogie
 [Arduino Library]: https://github.com/ElectronicCats/mpu6050
 [Raspbian Jessie]: https://www.raspberrypi.org/downloads/raspbian/
-[i2c_device_ros]: https://github.com/Brazilian-Institute-of-Robotics/i2c_device_ros
 [The MPU6050 Explained]: https://mjwhite8119.github.io/Robots/mpu6050
 [mpu_settings.yaml]: config/mpu_settings.yaml

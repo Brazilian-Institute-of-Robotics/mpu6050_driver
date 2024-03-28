@@ -40,7 +40,7 @@ THE SOFTWARE.
 #define MPU6050_DRIVER_MPU6050_HPP_
 
 #include <string>
-#include "i2c_device_ros/i2c_device.hpp"
+#include "mpu6050_driver/i2c_device.hpp"
 #include "mpu6050_driver/types.hpp"
 
 namespace mpu6050_driver {

@@ -2,6 +2,7 @@
 MIT License
 
 //  Copyright (c) 2020 Mateus Meneses
+//  Copyright (c) 2024 Mohamed Abdelkader
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -23,23 +24,24 @@ SOFTWARE.
 ===============================================
 */
 
-#include <ros/ros.h>
+#include <rclcpp/rclcpp.hpp>
 #include <exception>
 #include "mpu6050_driver/mpu6050_calibration_node.hpp"
 
 int main(int argc, char **argv) {
-  ros::init(argc, argv, "mpu6050_calibration_node");
-  ros::NodeHandle nh;
+  rclcpp::init(argc, argv);
 
-  mpu6050_driver::MPU6050CalibrationNode mpu_calibration_node;
+  auto mpu_calibration_node = std::make_shared<mpu6050_driver::MPU6050CalibrationNode>();
 
   try {
-    mpu_calibration_node.init();
-    mpu_calibration_node.run();
-  } catch (std::runtime_error error) {
-    ROS_FATAL("%s", error.what());
-    ros::shutdown();
+    mpu_calibration_node->init();
+    rclcpp::spin(mpu_calibration_node);
+  } catch (const std::runtime_error& error) {
+    RCLCPP_FATAL(mpu_calibration_node->get_logger(), "%s", error.what());
+    rclcpp::shutdown();
   }
 
+  rclcpp::shutdown();
   return 0;
 }
+
