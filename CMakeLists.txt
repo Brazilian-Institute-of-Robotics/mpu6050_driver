@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.8)
 project(mpu6050_driver)
 
 # Default to C++14
@@ -40,12 +40,20 @@ add_executable(mpu6050_calibration_node src/main_calibration.cpp src/mpu6050_cal
 ament_target_dependencies(mpu6050_calibration_node rclcpp sensor_msgs)
 target_link_libraries(mpu6050_calibration_node mpu6050_node_lib)
 
+ament_export_targets(export_${PROJECT_NAME})
 # Install targets
-install(TARGETS
-  mpu6050_node
-  mpu6050_calibration_node
-  mpu6050_node_lib
-  DESTINATION lib/${PROJECT_NAME})
+install(
+  TARGETS mpu6050_node mpu6050_calibration_node mpu6050_node_lib
+  EXPORT export_${PROJECT_NAME}
+  DESTINATION lib/${PROJECT_NAME}
+)
+
+# Install targets
+# install(TARGETS
+#   mpu6050_node
+#   mpu6050_calibration_node
+#   mpu6050_node_lib
+#   DESTINATION lib/${PROJECT_NAME})
 
 install(DIRECTORY include/
   DESTINATION include)

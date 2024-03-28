@@ -31,6 +31,6 @@
 
   <!-- Export the package's dependencies -->
   <export>
-    <!-- Other packages that need to be included in the build environment for this package -->
+    <build_type>ament_cmake</build_type>
   </export>
 </package>
