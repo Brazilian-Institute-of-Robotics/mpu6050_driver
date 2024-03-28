@@ -55,6 +55,20 @@ void MPU6050Node::init() {
     RCLCPP_INFO(this->get_logger(), "MPU6050 Node has started.");
 }
 
+// void MPU6050Node::loadParameters() {
+//     this->declare_parameter("bus_uri", "/dev/i2c-1");
+//     this->declare_parameter("mpu_address", 0x68);
+//     this->declare_parameter("pub_rate", 30.0f);
+//     this->declare_parameter("frame_id", "imu_link");
+//     this->declare_parameter("axes_offsets", std::vector<int>{0, 0, 0, 0, 0, 0});
+
+//     this->get_parameter("bus_uri", i2c_bus_uri_);
+//     this->get_parameter("mpu_address", mpu6050_addr_);
+//     this->get_parameter("pub_rate", pub_rate_);
+//     this->get_parameter("frame_id", imu_frame_id_);
+//     this->get_parameter("axes_offsets", axes_offsets_);
+// }
+
 void MPU6050Node::loadParameters() {
     this->declare_parameter("bus_uri", "/dev/i2c-1");
     this->declare_parameter("mpu_address", 0x68);
@@ -66,8 +80,13 @@ void MPU6050Node::loadParameters() {
     this->get_parameter("mpu_address", mpu6050_addr_);
     this->get_parameter("pub_rate", pub_rate_);
     this->get_parameter("frame_id", imu_frame_id_);
-    this->get_parameter("axes_offsets", axes_offsets_);
+
+    // Explicitly specify the type as std::vector<int>
+    std::vector<long int> axes_offsets_long;
+    this->get_parameter("axes_offsets", axes_offsets_long);
+    axes_offsets_ = std::vector<int>(axes_offsets_long.begin(), axes_offsets_long.end());
 }
+
 
 void MPU6050Node::setMPUOffsets() {
     mpu6050_.setXAccelOffset(axes_offsets_[0]);

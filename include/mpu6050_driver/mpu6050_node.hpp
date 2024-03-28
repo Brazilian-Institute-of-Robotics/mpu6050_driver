@@ -56,7 +56,6 @@ public:
    */
   MPU6050Node();
 
-private:
   /**
    * @brief Initialize the node and set up the MPU6050 sensor.
    * 
@@ -65,6 +64,13 @@ private:
    * sensor data to a ROS2 topic.
    */
   void init();
+
+  MPU6050 mpu6050_; // Interface to the MPU6050 sensor
+  float pub_rate_; // Publication rate for MPU6050 data
+  std::string imu_frame_id_; // Frame ID for the published Imu messages
+
+private:
+  
 
   /**
    * @brief Publish MPU6050 sensor data.
@@ -94,12 +100,10 @@ private:
   rclcpp::Publisher<sensor_msgs::msg::Imu>::SharedPtr mpu_data_pub_; // Publisher for MPU6050 data
   rclcpp::TimerBase::SharedPtr data_publish_timer_; // Timer for periodic data publishing
 
-  MPU6050 mpu6050_; // Interface to the MPU6050 sensor
+
   int mpu6050_addr_; // I2C address of the MPU6050 sensor
   std::string i2c_bus_uri_; // I2C bus URI
 
-  float pub_rate_; // Publication rate for MPU6050 data
-  std::string imu_frame_id_; // Frame ID for the published Imu messages
   std::vector<int> axes_offsets_; // Calibration offsets for sensor initialization
 };
 
