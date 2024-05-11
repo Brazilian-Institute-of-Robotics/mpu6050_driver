@@ -60,7 +60,7 @@ void MPU6050CalibrationNode::computeOffsets() {
   float dt = 1.0 / pub_rate_;  // How it isn't a dynamic system, sample time doesn't must exactly computed
 
   IMUData<int16_t> imu_raw_data = mpu6050_.getRawMotion6();
-  imu_raw_data.accel.z -= 16384;  // Remove gravity contribution
+  imu_raw_data.accel.z -= 8192;  // Remove gravity contribution 8192: +-4g, 16384: +-2g,  2048: +-8g, 2048: 16+-g
 
   /* The divisions here is beacause the offsets need to be set when the MPU is 
   in the less sensitive mode (accel in 16g mode and gyro in 2000 degrees/sec mode).
