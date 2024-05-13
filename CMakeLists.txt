@@ -52,6 +52,11 @@ target_link_libraries(mpu6050_calibration_node
   ${MPU6050_NODE_LIB}
 )
 
+# Install Python scripts
+catkin_install_python(PROGRAMS scripts/imu_calibration_listener.py
+  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
+
 # install(TARGETS ${PROJECT_NAME}_node
 #   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 # )

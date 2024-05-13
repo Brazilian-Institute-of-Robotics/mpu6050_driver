@@ -1,0 +1,11 @@
+<?xml version="1.0"?>
+<launch>
+    <arg name="yaml_file" default="$(find mpu6050_driver)/config/mpu_settings.yaml"/>
+    <arg name="node_required" defualt="false"/>
+    <!-- IMU Calibration Listener Node -->
+    <node name="imu_calibration_listener" pkg="mpu6050_driver" type="imu_calibration_listener.py" output="screen" required="$(arg node_required)">
+        <!-- Path to the MPU Settings YAML file -->
+        <!-- Adjust the default path as necessary -->
+        <param name="mpu_settings_path" value="$(arg yaml_file)"/>
+    </node>
+</launch>
