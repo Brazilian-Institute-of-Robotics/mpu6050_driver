@@ -1,0 +1,11 @@
+<?xml version="1.0"?>
+<launch>
+    <arg name="mpu_yaml" default="$(find mpu6050_driver)/config/mpu_settings.yaml"/>
+    <arg name="yaml_output_path" default="/home/vio/config/new_mpu_settings.yaml"/>
+    <!-- Run the calibration node -->
+    <node name="mpu6050_calibration_node2" pkg="mpu6050_driver" type="mpu6050_calibration_node2" output="screen" required="true">
+        <rosparam file="$(arg mpu_yaml)" command="load"/>
+        <param name="num_measurements" value="200" />
+        <param name="yaml_output_path" value="$(arg yaml_output_path)" />
+    </node>
+</launch>

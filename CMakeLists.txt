@@ -14,6 +14,7 @@ set(CATKIN_DEPS
 find_package(catkin REQUIRED COMPONENTS ${CATKIN_DEPS})
 find_package(Eigen3 REQUIRED)
 find_package(cmake_modules REQUIRED)
+find_package(yaml-cpp REQUIRED)
 
 catkin_package(
  INCLUDE_DIRS include
@@ -51,6 +52,26 @@ target_link_libraries(mpu6050_calibration_node
   ${catkin_LIBRARIES}
   ${MPU6050_NODE_LIB}
 )
+
+add_executable(mpu6050_calibration_node2 
+  src/mpu6050_calibration_node2.cpp
+)
+
+target_link_libraries(mpu6050_calibration_node2
+  ${catkin_LIBRARIES}
+  ${MPU6050_NODE_LIB}
+  yaml-cpp
+)
+
+add_executable(mpu6050_node2 
+  src/mpu6050_node2.cpp
+)
+
+target_link_libraries(mpu6050_node2
+  ${catkin_LIBRARIES}
+  ${MPU6050_NODE_LIB}
+)
+
 
 # Install Python scripts
 catkin_install_python(PROGRAMS scripts/imu_calibration_listener.py
