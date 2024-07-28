@@ -50,9 +50,9 @@ void MPU6050::initialize(const std::string& i2c_bus_uri) {
 
   setClockSource(MPU6050_CLOCK_PLL_XGYRO);
 
-  setFullScaleGyroRange(MPU6050_GYRO_FS_250);
-  setFullScaleAccelRange(MPU6050_ACCEL_FS_2);
-  setDLPFMode(MPU6050_DLPF_BW_10);
+  setFullScaleGyroRange(MPU6050_GYRO_FS_1000); // it was MPU6050_GYRO_FS_250
+  setFullScaleAccelRange(MPU6050_ACCEL_FS_4); // it was MPU6050_ACCEL_FS_2
+  setDLPFMode(MPU6050_DLPF_BW_42); // it was MPU6050_DLPF_BW_10
 
   accel_lsb_sensitivity_ = this->getAccelLSBSensitivity();
   gyro_lsb_sensitivity_ = this->getGyroLSBSensitivity();
